@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventPro Image Downloader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .image-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .image-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .download-btn {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+        .download-btn:hover {
+            background: #45a049;
+        }
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .instructions ol {
+            text-align: left;
+        }
+        .instructions li {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 EventPro Image Downloader</h1>
+        
+        <div class="instructions">
+            <h3>📋 Instructions:</h3>
+            <ol>
+                <li>Click on each image to download it</li>
+                <li>Save all images to your <code>assets/img/</code> folder</li>
+                <li>Make sure the filenames match exactly as shown</li>
+                <li>After downloading, you can close this page</li>
+            </ol>
+        </div>
+
+        <div class="image-grid">
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1920&h=1080&fit=crop&crop=center" alt="Hero Background">
+                <h4>Hero Background</h4>
+                <a href="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1920&h=1080&fit=crop&crop=center" download="hero-bg.jpg" class="download-btn">Download hero-bg.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&h=600&fit=crop&crop=center" alt="Event Planning">
+                <h4>Event Planning</h4>
+                <a href="https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&h=600&fit=crop&crop=center" download="event-planning.jpg" class="download-btn">Download event-planning.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800&h=600&fit=crop&crop=center" alt="Wedding Events">
+                <h4>Wedding Events</h4>
+                <a href="https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800&h=600&fit=crop&crop=center" download="wedding-event.jpg" class="download-btn">Download wedding-event.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=800&h=600&fit=crop&crop=center" alt="Corporate Events">
+                <h4>Corporate Events</h4>
+                <a href="https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=800&h=600&fit=crop&crop=center" download="corporate-event.jpg" class="download-btn">Download corporate-event.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&h=600&fit=crop&crop=center" alt="Photography">
+                <h4>Photography</h4>
+                <a href="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&h=600&fit=crop&crop=center" download="photography.jpg" class="download-btn">Download photography.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&h=600&fit=crop&crop=center" alt="Entertainment">
+                <h4>Entertainment</h4>
+                <a href="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&h=600&fit=crop&crop=center" download="entertainment.jpg" class="download-btn">Download entertainment.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1555939594-58d20cb2ad4f?w=800&h=600&fit=crop&crop=center" alt="Catering">
+                <h4>Catering</h4>
+                <a href="https://images.unsplash.com/photo-1555939594-58d20cb2ad4f?w=800&h=600&fit=crop&crop=center" download="catering.jpg" class="download-btn">Download catering.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=600&fit=crop&crop=center" alt="Security">
+                <h4>Security</h4>
+                <a href="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=600&fit=crop&crop=center" download="security.jpg" class="download-btn">Download security.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face" alt="Team Member 1">
+                <h4>Team Member 1</h4>
+                <a href="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face" download="team-1.jpg" class="download-btn">Download team-1.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=400&fit=crop&crop=face" alt="Team Member 2">
+                <h4>Team Member 2</h4>
+                <a href="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=400&fit=crop&crop=face" download="team-2.jpg" class="download-btn">Download team-2.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face" alt="Team Member 3">
+                <h4>Team Member 3</h4>
+                <a href="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face" download="team-3.jpg" class="download-btn">Download team-3.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face" alt="Team Member 4">
+                <h4>Team Member 4</h4>
+                <a href="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face" download="team-4.jpg" class="download-btn">Download team-4.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=800&h=600&fit=crop&crop=center" alt="About Image">
+                <h4>About Image</h4>
+                <a href="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=800&h=600&fit=crop&crop=center" download="about-img.jpg" class="download-btn">Download about-img.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face" alt="Testimonial 1">
+                <h4>Testimonial 1</h4>
+                <a href="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face" download="testimonial-1.jpg" class="download-btn">Download testimonial-1.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=200&h=200&fit=crop&crop=face" alt="Testimonial 2">
+                <h4>Testimonial 2</h4>
+                <a href="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=200&h=200&fit=crop&crop=face" download="testimonial-2.jpg" class="download-btn">Download testimonial-2.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&h=200&fit=crop&crop=face" alt="Testimonial 3">
+                <h4>Testimonial 3</h4>
+                <a href="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&h=200&fit=crop&crop=face" download="testimonial-3.jpg" class="download-btn">Download testimonial-3.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop&crop=face" alt="Testimonial 4">
+                <h4>Testimonial 4</h4>
+                <a href="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop&crop=face" download="testimonial-4.jpg" class="download-btn">Download testimonial-4.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=800&h=400&fit=crop&crop=center" alt="Blog 1">
+                <h4>Blog Post 1</h4>
+                <a href="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=800&h=400&fit=crop&crop=center" download="blog-1.jpg" class="download-btn">Download blog-1.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&h=400&fit=crop&crop=center" alt="Blog 2">
+                <h4>Blog Post 2</h4>
+                <a href="https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&h=400&fit=crop&crop=center" download="blog-2.jpg" class="download-btn">Download blog-2.jpg</a>
+            </div>
+
+            <div class="image-item">
+                <img src="https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800&h=400&fit=crop&crop=center" alt="Blog 3">
+                <h4>Blog Post 3</h4>
+                <a href="https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800&h=400&fit=crop&crop=center" download="blog-3.jpg" class="download-btn">Download blog-3.jpg</a>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+            <h3>✅ After downloading all images:</h3>
+            <p>1. Create a folder called <code>assets/img/</code> in your project</p>
+            <p>2. Move all downloaded images to that folder</p>
+            <p>3. Your EventPro system will be ready with beautiful images!</p>
+        </div>
+    </div>
+</body>
+</html> 

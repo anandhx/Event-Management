@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download Missing Images</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .image-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .image-item img {
+            width: 100%;
+            max-width: 300px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .download-btn {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+        .download-btn:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Download Missing Images</h1>
+        <p>These are the images that are missing from your assets/img folder. Please download them to complete your EventPro system.</p>
+        
+        <div class="image-item">
+            <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=400&fit=crop&crop=face" alt="Team Member 2">
+            <h4>Team Member 2</h4>
+            <a href="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=400&fit=crop&crop=face" download="team-2.jpg" class="download-btn">Download team-2.jpg</a>
+        </div>
+
+        <div class="image-item">
+            <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=200&h=200&fit=crop&crop=face" alt="Testimonial 2">
+            <h4>Testimonial 2</h4>
+            <a href="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=200&h=200&fit=crop&crop=face" download="testimonial-2.jpg" class="download-btn">Download testimonial-2.jpg</a>
+        </div>
+
+        <div class="image-item">
+            <img src="https://images.unsplash.com/photo-1555939594-58d20cb2ad4f?w=800&h=600&fit=crop&crop=center" alt="Catering Services">
+            <h4>Catering Services</h4>
+            <a href="https://images.unsplash.com/photo-1555939594-58d20cb2ad4f?w=800&h=600&fit=crop&crop=center" download="catering.jpg" class="download-btn">Download catering.jpg</a>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+            <h3>✅ After downloading:</h3>
+            <p>1. Save all images to your <code>assets/img/</code> folder</p>
+            <p>2. Make sure the filenames match exactly</p>
+            <p>3. Your EventPro system will be complete!</p>
+        </div>
+    </div>
+</body>
+</html> 
