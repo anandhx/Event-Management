@@ -1,0 +1,51 @@
+/* custom_availability_management.css */
+
+/* Sidebar styling */
+aside {
+    background-color: #f8f9fa;
+    height: 100vh;
+    border-right: 1px solid #dee2e6;
+}
+
+aside .nav-link {
+    color: #495057;
+    font-size: 1rem;
+}
+
+aside .nav-link.active {
+    color: #0d6efd;
+    background-color: #e9ecef;
+}
+
+aside .nav-link i {
+    margin-right: 8px;
+}
+
+/* Main content styling */
+main {
+    padding: 20px;
+}
+
+/* Card styling */
+.card {
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.card-title {
+    margin-bottom: 1rem;
+}
+
+.btn-primary {
+    background-color: #0d6efd;
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.btn-primary:hover {
+    background-color: #0b5ed7;
+}
