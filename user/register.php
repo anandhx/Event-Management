@@ -4,6 +4,44 @@ require_once '../includes/db.php';
 
 $error = '';
 $success = '';
+$errors = [
+	'username' => '',
+	'email' => '',
+	'password' => '',
+	'confirm_password' => '',
+	'full_name' => '',
+	'phone' => '',
+	'address' => ''
+];
+
+// Flash messages from redirects
+if (isset($_SESSION['success_message'])) {
+    $success = $_SESSION['success_message'];
+    unset($_SESSION['success_message']);
+}
+if (isset($_SESSION['error_message'])) {
+    $error = $_SESSION['error_message'];
+    unset($_SESSION['error_message']);
+}
+
+// If backend set session-based errors/old input, hydrate them
+if (isset($_SESSION['form_errors']) && is_array($_SESSION['form_errors'])) {
+	foreach ($errors as $k => $_) {
+		if (isset($_SESSION['form_errors'][$k])) {
+			$errors[$k] = $_SESSION['form_errors'][$k];
+		}
+	}
+	unset($_SESSION['form_errors']);
+}
+
+if (isset($_SESSION['old']) && is_array($_SESSION['old'])) {
+	foreach (['username','email','full_name','phone','address'] as $field) {
+		if (isset($_SESSION['old'][$field]) && !isset($_POST[$field])) {
+			$_POST[$field] = $_SESSION['old'][$field];
+		}
+	}
+	unset($_SESSION['old']);
+}
 
 // Check if user is already logged in
 if (isset($_SESSION['user_id'])) {
@@ -20,28 +58,47 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $full_name = trim($_POST['full_name']);
     $phone = trim($_POST['phone']);
     $address = trim($_POST['address']);
-    
-    // Debug: Log the registration attempt
-    error_log("Registration attempt for username: $username, email: $email");
-    
-    // Validation
-    if (empty($username) || empty($email) || empty($password) || empty($full_name)) {
-        $error = 'Please fill in all required fields.';
+
+    // Field-level validation
+    if ($username === '') {
+        $errors['username'] = 'Username is required.';
+    } elseif (!preg_match('/^[a-zA-Z_]{3,20}$/', $username)) {
+        $errors['username'] = '3-20 chars, letters and underscores only.';
+    }
+
+    if ($email === '') {
+        $errors['email'] = 'Email is required.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Please enter a valid email address.';
-    } elseif (strlen($password) < 6) {
-        $error = 'Password must be at least 6 characters long.';
+        $errors['email'] = 'Enter a valid email address.';
+    }
+
+    if ($password === '') {
+        $errors['password'] = 'Password is required.';
+    } elseif (strlen($password) < 8) {
+        $errors['password'] = 'Password must be at least 8 characters.';
+    }
+
+    if ($confirm_password === '') {
+        $errors['confirm_password'] = 'Please confirm your password.';
     } elseif ($password !== $confirm_password) {
-        $error = 'Passwords do not match.';
-    } elseif (!preg_match('/^[a-zA-Z_]+$/', $username)) {
-        $error = 'Username can only contain letters and underscores. No numbers or symbols allowed.';
-    } elseif (strlen($username) < 3) {
-        $error = 'Username must be at least 3 characters long.';
-    } elseif (strlen($username) > 20) {
-        $error = 'Username cannot exceed 20 characters.';
+        $errors['confirm_password'] = 'Passwords do not match.';
+    }
+
+    if ($full_name === '') {
+        $errors['full_name'] = 'Full name is required.';
     } elseif (!preg_match('/^[a-zA-Z\s]+$/', $full_name)) {
-        $error = 'Full name can only contain letters and spaces.';
-    } else {
+        $errors['full_name'] = 'Letters and spaces only.';
+    }
+
+    if ($phone !== '') {
+        if (!preg_match('/^\d{10}$/', $phone)) {
+            $errors['phone'] = 'Phone must be exactly 10 digits.';
+        }
+    }
+
+    $hasErrors = implode('', $errors) !== '';
+
+    if (!$hasErrors) {
         // Check if username already exists
         $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
         if (!$stmt) {
@@ -50,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt->bind_param("s", $username);
             $stmt->execute();
             if ($stmt->get_result()->num_rows > 0) {
-                $error = 'Username already exists. Please choose another one.';
+                $errors['username'] = 'Username already exists. Please choose another one.';
             } else {
                 // Check if email already exists
                 $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
@@ -60,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $stmt->bind_param("s", $email);
                     $stmt->execute();
                     if ($stmt->get_result()->num_rows > 0) {
-                        $error = 'Email already exists. Please use another email address.';
+                        $errors['email'] = 'Email already exists. Please use another email address.';
                     } else {
                         // Insert user (only clients can register directly)
                         $user_type = 'client';
@@ -226,18 +283,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="username" class="form-label">Username *</label>
-                                        <input type="text" class="form-control" id="username" name="username" 
+                                        <input type="text" class="form-control<?php echo $errors['username'] ? ' is-invalid' : ''; ?>" id="username" name="username" 
                                                value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>" 
                                                placeholder="Only letters and underscores" required>
                                         <small class="form-text text-muted">3-20 characters, letters and underscores only</small>
+                                        <?php if ($errors['username']): ?>
+                                            <div class="invalid-feedback"><?php echo htmlspecialchars($errors['username']); ?></div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="email" class="form-label">Email *</label>
-                                        <input type="email" class="form-control" id="email" name="email" 
+                                        <input type="email" class="form-control<?php echo $errors['email'] ? ' is-invalid' : ''; ?>" id="email" name="email" 
                                                value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>" 
                                                placeholder="Enter your email" required>
+                                        <?php if ($errors['email']): ?>
+                                            <div class="invalid-feedback"><?php echo htmlspecialchars($errors['email']); ?></div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -246,15 +309,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="password" class="form-label">Password *</label>
-                                        <input type="password" class="form-control" id="password" name="password" 
-                                               placeholder="Minimum 6 characters" required>
+                                        <input type="password" class="form-control<?php echo $errors['password'] ? ' is-invalid' : ''; ?>" id="password" name="password" 
+                                               placeholder="Minimum 8 characters" required>
+                                        <?php if ($errors['password']): ?>
+                                            <div class="invalid-feedback"><?php echo htmlspecialchars($errors['password']); ?></div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="confirm_password" class="form-label">Confirm Password *</label>
-                                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" 
+                                        <input type="password" class="form-control<?php echo $errors['confirm_password'] ? ' is-invalid' : ''; ?>" id="confirm_password" name="confirm_password" 
                                                placeholder="Confirm your password" required>
+                                        <?php if ($errors['confirm_password']): ?>
+                                            <div class="invalid-feedback"><?php echo htmlspecialchars($errors['confirm_password']); ?></div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -263,26 +332,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="full_name" class="form-label">Full Name *</label>
-                                        <input type="text" class="form-control" id="full_name" name="full_name" 
+                                        <input type="text" class="form-control<?php echo $errors['full_name'] ? ' is-invalid' : ''; ?>" id="full_name" name="full_name" 
                                                value="<?php echo isset($_POST['full_name']) ? htmlspecialchars($_POST['full_name']) : ''; ?>" 
                                                placeholder="Letters and spaces only" required>
                                         <small class="form-text text-muted">Letters and spaces only</small>
+                                        <?php if ($errors['full_name']): ?>
+                                            <div class="invalid-feedback"><?php echo htmlspecialchars($errors['full_name']); ?></div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="phone" class="form-label">Phone Number</label>
-                                        <input type="tel" class="form-control" id="phone" name="phone" 
+                                        <input type="tel" class="form-control<?php echo $errors['phone'] ? ' is-invalid' : ''; ?>" id="phone" name="phone" 
                                                value="<?php echo isset($_POST['phone']) ? htmlspecialchars($_POST['phone']) : ''; ?>" 
                                                placeholder="Enter phone number">
+                                        <?php if ($errors['phone']): ?>
+                                            <div class="invalid-feedback"><?php echo htmlspecialchars($errors['phone']); ?></div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
                             
                             <div class="mb-3">
                                 <label for="address" class="form-label">Address</label>
-                                <textarea class="form-control" id="address" name="address" rows="2" 
+                                <textarea class="form-control<?php echo $errors['address'] ? ' is-invalid' : ''; ?>" id="address" name="address" rows="2" 
                                           placeholder="Enter your address"><?php echo isset($_POST['address']) ? htmlspecialchars($_POST['address']) : ''; ?></textarea>
+                                <?php if ($errors['address']): ?>
+                                    <div class="invalid-feedback"><?php echo htmlspecialchars($errors['address']); ?></div>
+                                <?php endif; ?>
                             </div>
                             
                             <div class="d-grid">

@@ -1,44 +1,41 @@
 <?php
 session_start();
+require_once '../includes/db.php';
 
-// Dummy user data for showcase
-if (!isset($_SESSION['user_id'])) {
-    $_SESSION['user_id'] = 1;
-    $_SESSION['username'] = 'john_doe';
-    $_SESSION['full_name'] = 'John Doe';
-    $_SESSION['user_type'] = 'client';
-}
-
-// Dummy conversations
-$conversations = [
-    [ 'id' => 1, 'planner' => [ 'name' => 'Jane Smith','company' => 'Elegant Events Co.','image' => '../assets/img/team-1.jpg','online' => true ], 'event' => 'Sarah & Mike Wedding','last_message' => 'Hi! I\'ve confirmed the venue decoration details. Everything looks perfect for your theme.','time' => '2 hours ago','unread' => 1 ],
-];
-
-// Dummy messages for active conversation
-$active_conversation = [
-    'id' => 1,
-    'planner' => [ 'name' => 'Jane Smith','company' => 'Elegant Events Co.','image' => '../assets/img/team-1.jpg','online' => true ],
-    'event' => 'Sarah & Mike Wedding',
-    'messages' => [
-        [ 'sender' => 'planner','message' => 'Hi John! I\'ve confirmed the venue decoration details. Everything looks perfect for your theme.','time' => '2 hours ago','status' => 'read' ],
-        [ 'sender' => 'client','message' => 'Great! Can you also confirm the photographer will be there by 1 PM?','time' => '1 hour ago','status' => 'read' ],
-    ]
-];
-
-// Handle message submission
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['message'])) {
-    $_SESSION['success_message'] = "Message sent successfully!";
-    header("Location: messages.php?conversation=" . $active_conversation['id']);
+if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'planner') {
+    header('Location: ../login.php');
     exit();
 }
-?>
 
+$plannerId = (int)$_SESSION['user_id'];
+
+// Fetch recent conversations (distinct clients who messaged with planner)
+$conversations = [];
+$sql = "SELECT u.id AS client_id, u.full_name AS client_name,
+               MAX(m.created_at) AS last_time,
+               SUBSTRING_INDEX(GROUP_CONCAT(m.message ORDER BY m.created_at DESC SEPARATOR '\n'), '\n', 1) AS last_message
+        FROM messages m
+        JOIN users u ON (CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END) = u.id
+        WHERE (m.sender_id = ? OR m.receiver_id = ?)
+        GROUP BY u.id, u.full_name
+        ORDER BY last_time DESC
+        LIMIT 20";
+$stmt = $conn->prepare($sql);
+if ($stmt) { $stmt->bind_param('iii', $plannerId, $plannerId, $plannerId); $stmt->execute(); $res = $stmt->get_result(); while ($row = $res->fetch_assoc()) { $conversations[] = $row; } }
+
+$activeClientId = isset($_GET['client']) ? (int)$_GET['client'] : ( ($conversations[0]['client_id'] ?? 0) );
+$messages = [];
+if ($activeClientId) {
+    $stmt = $conn->prepare("SELECT m.*, u.full_name AS sender_name FROM messages m JOIN users u ON u.id = m.sender_id WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?) ORDER BY m.created_at ASC");
+    if ($stmt) { $stmt->bind_param('iiii', $plannerId, $activeClientId, $activeClientId, $plannerId); $stmt->execute(); $res = $stmt->get_result(); while ($row = $res->fetch_assoc()) { $messages[] = $row; } }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Messages - EventPro</title>
+    <title>Messages - Planner</title>
     <link href="../assets/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -52,27 +49,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['message'])) {
         .chat-header { padding: 16px 20px; border-bottom:2px solid #e9ecef; background:#f8f9fa; }
         .chat-messages { flex:1; padding:20px; overflow-y:auto; background:#f8f9fa; }
         .chat-input { padding:16px 20px; border-top:2px solid #e9ecef; background:#fff; }
-        .planner-avatar { width:50px; height:50px; border-radius:50%; object-fit:cover; }
+        .planner-avatar { width:40px; height:40px; border-radius:50%; object-fit:cover; }
         .message-bubble { margin-bottom:12px; max-width:70%; }
-        .message-bubble.client { margin-left:auto; }
+        .message-bubble.self { margin-left:auto; }
         .message-content { padding:12px 16px; border-radius:18px; }
-        .message-bubble.client .message-content { background:#667eea; color:#fff; }
-        .message-bubble.planner .message-content { background:#fff; border:1px solid #e9ecef; }
+        .message-bubble.self .message-content { background:#667eea; color:#fff; }
+        .message-bubble.other .message-content { background:#fff; border:1px solid #e9ecef; }
     </style>
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
-            <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 px-0">
                 <div class="sidebar p-3">
                     <div class="text-center mb-4">
-                        <h4 class="text-white"><i class="fas fa-user me-2"></i>User Dashboard</h4>
-                        <p class="text-white-50 small">Welcome, <?php echo htmlspecialchars($_SESSION['full_name'] ?? ''); ?></p>
+                        <h4 class="text-white"><i class="fas fa-user-tie me-2"></i>Planner</h4>
+                        <p class="text-white-50 small">Welcome, <?php echo htmlspecialchars($_SESSION['full_name']); ?></p>
                     </div>
                     <nav class="nav flex-column">
-                        <a class="nav-link" href="user_index.php"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a>
-                        <a class="nav-link" href="create_event.php"><i class="fas fa-plus me-2"></i>Create Event</a>
+                        <a class="nav-link" href="planner_index.php"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a>
+                        <a class="nav-link" href="portfolio.php"><i class="fas fa-briefcase me-2"></i>Portfolio</a>
                         <a class="nav-link" href="my_events.php"><i class="fas fa-calendar me-2"></i>My Events</a>
                         <a class="nav-link active" href="messages.php"><i class="fas fa-envelope me-2"></i>Messages</a>
                         <a class="nav-link" href="notifications.php"><i class="fas fa-bell me-2"></i>Notifications</a>
@@ -81,8 +77,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['message'])) {
                     </nav>
                 </div>
             </div>
-
-            <!-- Main Content -->
             <div class="col-md-9 col-lg-10 px-0">
                 <div class="main-content p-4">
                     <div class="row">
@@ -91,37 +85,39 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['message'])) {
                                 <div class="row h-100 g-0">
                                     <div class="col-md-4">
                                         <div class="conversation-list">
-                                            <div class="p-3 border-bottom"><h5 class="fw-bold mb-0"><i class="fas fa-comments me-2"></i>Messages</h5></div>
-                                            <?php foreach ($conversations as $conversation): ?>
-                                                <div class="conversation-item p-3 border-bottom <?php echo $conversation['id'] == $active_conversation['id'] ? 'bg-light' : ''; ?>">
+                                            <div class="p-3 border-bottom"><h5 class="fw-bold mb-0"><i class="fas fa-comments me-2"></i>Conversations</h5></div>
+                                            <?php foreach ($conversations as $c): ?>
+                                                <a class="d-block p-3 border-bottom text-decoration-none <?php echo ($c['client_id'] == $activeClientId ? 'bg-light' : ''); ?>" href="?client=<?php echo (int)$c['client_id']; ?>">
                                                     <div class="d-flex align-items-center">
-                                                        <img src="<?php echo $conversation['planner']['image'] ?? '../assets/img/team-1.jpg'; ?>" class="planner-avatar me-3" alt="">
+                                                        <div class="planner-avatar bg-primary me-3"></div>
                                                         <div class="flex-grow-1">
-                                                            <h6 class="fw-bold mb-1"><?php echo $conversation['planner']['name']; ?></h6>
-                                                            <p class="text-muted small mb-0"><?php echo $conversation['event']; ?></p>
+                                                            <strong class="d-block"><?php echo htmlspecialchars($c['client_name']); ?></strong>
+                                                            <small class="text-muted"><?php echo htmlspecialchars(mb_strimwidth($c['last_message'] ?? '', 0, 48, '...')); ?></small>
                                                         </div>
                                                     </div>
-                                                </div>
+                                                </a>
                                             <?php endforeach; ?>
                                         </div>
                                     </div>
                                     <div class="col-md-8">
                                         <div class="chat-area">
                                             <div class="chat-header">
-                                                <h6 class="mb-0"><?php echo $active_conversation['planner']['name']; ?> · <small class="text-muted"><?php echo $active_conversation['planner']['company']; ?></small></h6>
+                                                <h6 class="mb-0">Chat with <?php echo htmlspecialchars(($conversations[array_search($activeClientId, array_column($conversations,'client_id'))]['client_name'] ?? 'Client')); ?></h6>
                                             </div>
                                             <div class="chat-messages">
-                                                <?php foreach ($active_conversation['messages'] as $message): ?>
-                                                    <div class="message-bubble <?php echo $message['sender']; ?>">
+                                                <?php foreach ($messages as $m): $self = $m['sender_id'] == $plannerId; ?>
+                                                    <div class="message-bubble <?php echo $self ? 'self' : 'other'; ?>">
                                                         <div class="message-content">
-                                                            <p class="mb-1"><?php echo $message['message']; ?></p>
-                                                            <small class="text-muted"><?php echo $message['time']; ?></small>
+                                                            <p class="mb-1"><?php echo htmlspecialchars($m['message']); ?></p>
+                                                            <small class="text-muted"><?php echo htmlspecialchars($m['created_at']); ?></small>
                                                         </div>
                                                     </div>
                                                 <?php endforeach; ?>
                                             </div>
                                             <div class="chat-input">
-                                                <form method="POST" class="d-flex gap-2">
+                                                <form action="../user/send_message.php" method="POST" class="d-flex gap-2">
+                                                    <input type="hidden" name="sender_id" value="<?php echo $plannerId; ?>">
+                                                    <input type="hidden" name="receiver_id" value="<?php echo (int)$activeClientId; ?>">
                                                     <input type="text" class="form-control" name="message" placeholder="Type your message..." required>
                                                     <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-1"></i>Send</button>
                                                 </form>
@@ -136,8 +132,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['message'])) {
             </div>
         </div>
     </div>
-
     <script src="../assets/js/bootstrap.bundle.min.js"></script>
-    <script>document.addEventListener('DOMContentLoaded',()=>{const c=document.querySelector('.chat-messages'); if(c) c.scrollTop=c.scrollHeight;});</script>
 </body>
-</html> 
+</html>

@@ -13,45 +13,94 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'client') {
 // Get user statistics from database
 $user_stats = [];
 
+// Prepared helper
+$clientId = (int)$_SESSION['user_id'];
+function fetch_single_int($conn, $sql, $types, $params, $column) {
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) { return 0; }
+    if ($types !== '') { $stmt->bind_param($types, ...$params); }
+    $stmt->execute();
+    $res = $stmt->get_result();
+    if (!$res) { return 0; }
+    $row = $res->fetch_assoc();
+    return isset($row[$column]) ? (int)$row[$column] : 0;
+}
+
 // Total events for this user
-$result = $conn->query("SELECT COUNT(*) as count FROM events WHERE client_id = " . $_SESSION['user_id']);
-$user_stats['total_events'] = $result->fetch_assoc()['count'];
+$user_stats['total_events'] = fetch_single_int(
+    $conn,
+    "SELECT COUNT(*) AS count FROM events WHERE client_id = ?",
+    'i',
+    [$clientId],
+    'count'
+);
 
 // Completed events
-$result = $conn->query("SELECT COUNT(*) as count FROM events WHERE client_id = " . $_SESSION['user_id'] . " AND status = 'completed'");
-$user_stats['completed_events'] = $result->fetch_assoc()['count'];
+$user_stats['completed_events'] = fetch_single_int(
+    $conn,
+    "SELECT COUNT(*) AS count FROM events WHERE client_id = ? AND status = 'completed'",
+    'i',
+    [$clientId],
+    'count'
+);
 
 // Pending events
-$result = $conn->query("SELECT COUNT(*) as count FROM events WHERE client_id = " . $_SESSION['user_id'] . " AND status = 'pending'");
-$user_stats['pending_events'] = $result->fetch_assoc()['count'];
+$user_stats['pending_events'] = fetch_single_int(
+    $conn,
+    "SELECT COUNT(*) AS count FROM events WHERE client_id = ? AND status = 'pending'",
+    'i',
+    [$clientId],
+    'count'
+);
 
 // Total spent (from bookings)
-$result = $conn->query("SELECT COALESCE(SUM(amount), 0) as total FROM bookings WHERE client_id = " . $_SESSION['user_id'] . " AND status = 'paid'");
-$user_stats['total_spent'] = $result->fetch_assoc()['total'];
+$stmt = $conn->prepare("SELECT COALESCE(SUM(amount), 0) AS total FROM bookings WHERE client_id = ? AND status = 'paid'");
+if ($stmt) {
+    $stmt->bind_param('i', $clientId);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res ? $res->fetch_assoc() : ['total' => 0];
+    $user_stats['total_spent'] = (float)$row['total'];
+} else {
+    $user_stats['total_spent'] = 0;
+}
 
 // Upcoming events
-$result = $conn->query("SELECT COUNT(*) as count FROM events WHERE client_id = " . $_SESSION['user_id'] . " AND event_date >= CURDATE() AND status IN ('confirmed', 'in_progress')");
-$user_stats['upcoming_events'] = $result->fetch_assoc()['count'];
+$user_stats['upcoming_events'] = fetch_single_int(
+    $conn,
+    "SELECT COUNT(*) AS count FROM events WHERE client_id = ? AND event_date >= CURDATE() AND status IN ('confirmed','in_progress')",
+    'i',
+    [$clientId],
+    'count'
+);
 
-// Favorite planners (planners with high ratings)
-$result = $conn->query("SELECT COUNT(DISTINCT e.planner_id) as count FROM events e JOIN users u ON e.planner_id = u.id WHERE e.client_id = " . $_SESSION['user_id'] . " AND e.planner_id IS NOT NULL");
-$user_stats['favorite_planners'] = $result->fetch_assoc()['count'];
+// Favorite planners (count distinct planners who worked with this client)
+$user_stats['favorite_planners'] = fetch_single_int(
+    $conn,
+    "SELECT COUNT(DISTINCT e.planner_id) AS count FROM events e WHERE e.client_id = ? AND e.planner_id IS NOT NULL",
+    'i',
+    [$clientId],
+    'count'
+);
 
 // Get user events
 $user_events = getEventsByUserId($conn, $_SESSION['user_id'], 'client');
 
-// Get recommended planners (top rated planners)
+// Get recommended planners (approved & available)
 $recommended_planners = [];
-$result = $conn->query("
-    SELECT u.id, u.full_name, u.username, p.company_name, p.rating, p.total_reviews, p.specialization, p.experience_years, p.hourly_rate
-    FROM users u 
-    JOIN planners p ON u.id = p.user_id 
-    WHERE u.status = 'active' AND u.user_type = 'planner'
-    ORDER BY p.rating DESC, p.total_reviews DESC 
-    LIMIT 6
-");
-while ($row = $result->fetch_assoc()) {
-    $recommended_planners[] = $row;
+$stmt = $conn->prepare(
+    "SELECT u.id, u.full_name, u.username, p.company_name, p.rating, p.total_reviews, p.specialization, p.experience_years, p.hourly_rate
+     FROM users u
+     JOIN planners p ON u.id = p.user_id
+     WHERE u.status = 'active' AND u.user_type = 'planner' AND p.approval_status = 'approved' AND p.availability = 1
+     ORDER BY p.rating DESC, p.total_reviews DESC
+     LIMIT 6"
+);
+if ($stmt && $stmt->execute()) {
+    $res = $stmt->get_result();
+    while ($row = $res->fetch_assoc()) {
+        $recommended_planners[] = $row;
+    }
 }
 
 // Get unread notifications count
@@ -72,7 +121,10 @@ $messages_count = getUnreadMessagesCount($conn, $_SESSION['user_id']);
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .sidebar {
-            min-height: 100vh;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
         .sidebar .nav-link {

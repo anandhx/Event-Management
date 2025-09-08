@@ -188,52 +188,12 @@ if (session_status() == PHP_SESSION_NONE) {
 
 
 
-<?php if (isset($_SESSION['success_message']) || isset($_SESSION['error_message'])): ?>
-    <script>
-        <?php if (isset($_SESSION['success_message'])): ?>
-            alert("<?php echo $_SESSION['success_message']; ?>");
-            <?php unset($_SESSION['success_message']); ?>
-        <?php endif; ?>
-
-        <?php if (isset($_SESSION['error_message'])): ?>
-            alert("<?php echo $_SESSION['error_message']; ?>");
-            <?php unset($_SESSION['error_message']); ?>
-        <?php endif; ?>
-    </script>
-<?php endif; ?>
+<?php /* Flash messages are now displayed within individual pages (e.g., login/register). */ ?>
 
 
 
 
-<!-- old message modal un commen this for old message  -->
-<?php
-
-
-/*
-if (isset($_SESSION['success_message']) || isset($_SESSION['error_message'])): ?>
-    <div id="message-box" class="position-fixed top-0 right-0 m-3">
-        <?php if (isset($_SESSION['success_message'])): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <?php echo $_SESSION['success_message']; ?>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-                <?php unset($_SESSION['success_message']); ?>
-            </div>
-        <?php endif; ?>
-        <?php if (isset($_SESSION['error_message'])): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <?php echo $_SESSION['error_message']; ?>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-                <?php unset($_SESSION['error_message']); ?>
-            </div>
-        <?php endif; ?>
-    </div>
-endif;
-*/
-?>
+<?php /* Old modal-based message UI removed to avoid duplication. */ ?>
 
 
 
@@ -259,9 +219,19 @@ endif;
                         </li>
                 
                         <li class="nav-item ms-3">
-                            <button type="button" class="btn-custom btn-primary-custom" data-bs-toggle="modal" data-bs-target="#authModal">
-                                <i class="fas fa-user me-2"></i>Login / Sign Up
-                            </button>
+                            <a href="login.php" class="btn-custom btn-primary-custom">
+                                <i class="fas fa-user me-2"></i>Login
+                            </a>
+                        </li>
+                        <li class="nav-item ms-2">
+                            <a href="user/register.php" class="btn-custom btn-outline-secondary">
+                                <i class="fas fa-user-plus me-2"></i>Sign Up
+                            </a>
+                        </li>
+                        <li class="nav-item ms-2">
+                            <a href="user/register_planner.php" class="btn-custom btn-outline-secondary">
+                                <i class="fas fa-calendar-check me-2"></i>Planner Sign Up
+                            </a>
                         </li>
                     </ul>
                 </div>
@@ -272,272 +242,6 @@ endif;
 
     
 
-<!-- Authentication Modal -->
-<div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content custom-modal">
-            <div class="modal-header border-0">
-                <h5 class="modal-title text-gradient fw-bold">Welcome to EventPro</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <!-- User Type Selection -->
-                <div id="userTypeSelection" class="text-center">
-                    <h6 class="mb-4">Choose your account type</h6>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <button type="button" class="btn-custom btn-primary-custom w-100 py-4" onclick="selectUserType('client')">
-                                <i class="fas fa-user fa-2x mb-3"></i>
-                                <h6>Client</h6>
-                                <p class="small mb-0">I want to plan events</p>
-                            </button>
-                        </div>
-                        <div class="col-md-6">
-                            <button type="button" class="btn-custom btn-secondary-custom w-100 py-4" onclick="selectUserType('planner')">
-                                <i class="fas fa-calendar-check fa-2x mb-3"></i>
-                                <h6>Event Planner</h6>
-                                <p class="small mb-0">I provide event planning services</p>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <p class="text-muted mb-2">Already have an account?</p>
-                        <button type="button" class="btn-custom btn-outline-secondary" onclick="toggleTab('login')">
-                            <i class="fas fa-sign-in-alt me-2"></i>Sign In
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Login Form -->
-                <div id="loginForm" style="display: none;">
-                    <div class="text-center mb-4">
-                        <h6 class="text-muted">Welcome back!</h6>
-                        <p class="small text-muted">Sign in to your account</p>
-                    </div>
-                    
-                    <form action="login.php" method="POST" onsubmit="return validateLoginForm()">
-                        <div class="mb-3">
-                            <label for="loginUsername" class="form-label fw-semibold">Username</label>
-                            <input type="text" class="form-control-custom w-100" id="loginUsername" name="username" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="loginPassword" class="form-label fw-semibold">Password</label>
-                            <input type="password" class="form-control-custom w-100" id="loginPassword" name="password" required>
-                        </div>
-                        <div class="mb-4 form-check">
-                            <input type="checkbox" class="form-check-input" id="keepSignedIn">
-                            <label class="form-check-label" for="keepSignedIn">Keep me signed in</label>
-                        </div>
-                        <button type="submit" class="btn-custom btn-primary-custom w-100">
-                            <i class="fas fa-sign-in-alt me-2"></i>Sign In
-                        </button>
-                    </form>
-                    
-                    <!-- Demo Credentials Info -->
-                    <div class="mt-3 p-3 bg-light rounded">
-                        <small class="text-muted">
-                            <strong>Demo Credentials:</strong><br>
-                            <strong>Admin:</strong> admin / password<br>
-                            <strong>Planner:</strong> planner1 / password<br>
-                            <strong>Client:</strong> client1 / password
-                        </small>
-                    </div>
-                    
-                    <div class="text-center mt-3">
-                        <button type="button" class="btn-custom btn-outline-secondary" onclick="goBackToUserType()">
-                            <i class="fas fa-arrow-left me-2"></i>Back to Selection
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Client Signup Form -->
-                <div id="clientSignupForm" style="display: none;">
-                    <div class="text-center mb-4">
-                        <h6 class="text-muted">Create Client Account</h6>
-                        <p class="small text-muted">Join our Event Management System as a client</p>
-                    </div>
-                    
-                    <form action="register_backend.php" method="POST" onsubmit="return validateClientSignupForm()">
-                        <input type="hidden" name="user_type" value="client">
-                        
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="clientFullName" class="form-label fw-semibold">Full Name *</label>
-                                    <input type="text" class="form-control-custom w-100" id="clientFullName" name="full_name" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="clientUsername" class="form-label fw-semibold">Username *</label>
-                                    <input type="text" class="form-control-custom w-100" id="clientUsername" name="username" required>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row g-3 mt-2">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="clientEmail" class="form-label fw-semibold">Email *</label>
-                                    <input type="email" class="form-control-custom w-100" id="clientEmail" name="email" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="clientPhone" class="form-label fw-semibold">Phone *</label>
-                                    <input type="tel" class="form-control-custom w-100" id="clientPhone" name="phone" required>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group mt-3">
-                            <label for="clientAddress" class="form-label fw-semibold">Address *</label>
-                            <textarea class="form-control-custom w-100" id="clientAddress" name="address" rows="2" required></textarea>
-                        </div>
-                        
-                        <div class="row g-3 mt-2">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="clientPassword" class="form-label fw-semibold">Password *</label>
-                                    <input type="password" class="form-control-custom w-100" id="clientPassword" name="password" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="clientConfirmPassword" class="form-label fw-semibold">Confirm Password *</label>
-                                    <input type="password" class="form-control-custom w-100" id="clientConfirmPassword" name="confirm_password" required>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <button type="submit" class="btn-custom btn-primary-custom w-100 mt-3">
-                            <i class="fas fa-user-plus me-2"></i>Create Client Account
-                        </button>
-                    </form>
-                    
-                    <div class="text-center mt-3">
-                        <button type="button" class="btn-custom btn-outline-secondary" onclick="goBackToUserType()">
-                            <i class="fas fa-arrow-left me-2"></i>Back to Selection
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Planner Signup Form -->
-                <div id="plannerSignupForm" style="display: none;">
-                    <div class="text-center mb-4">
-                        <h6 class="text-muted">Create Planner Account</h6>
-                        <p class="small text-muted">Join our Event Management System as an event planner</p>
-                    </div>
-                    
-                    <form action="register_backend.php" method="POST" onsubmit="return validatePlannerSignupForm()">
-                        <input type="hidden" name="user_type" value="planner">
-                        
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="plannerFullName" class="form-label fw-semibold">Full Name *</label>
-                                    <input type="text" class="form-control-custom w-100" id="plannerFullName" name="full_name" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="plannerUsername" class="form-label fw-semibold">Username *</label>
-                                    <input type="text" class="form-control-custom w-100" id="plannerUsername" name="username" required>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row g-3 mt-2">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="plannerEmail" class="form-label fw-semibold">Email *</label>
-                                    <input type="email" class="form-control-custom w-100" id="plannerEmail" name="email" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="plannerPhone" class="form-label fw-semibold">Phone *</label>
-                                    <input type="tel" class="form-control-custom w-100" id="plannerPhone" name="phone" required>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row g-3 mt-2">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="plannerCompany" class="form-label fw-semibold">Company Name *</label>
-                                    <input type="text" class="form-control-custom w-100" id="plannerCompany" name="company_name" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="plannerSpecialization" class="form-label fw-semibold">Specialization *</label>
-                                    <select class="form-control-custom w-100" id="plannerSpecialization" name="specialization" required>
-                                        <option value="">Select Specialization</option>
-                                        <option value="Weddings">Weddings</option>
-                                        <option value="Corporate Events">Corporate Events</option>
-                                        <option value="Birthday Parties">Birthday Parties</option>
-                                        <option value="Anniversaries">Anniversaries</option>
-                                        <option value="Graduations">Graduations</option>
-                                        <option value="Other">Other</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row g-3 mt-2">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="plannerExperience" class="form-label fw-semibold">Years of Experience *</label>
-                                    <input type="number" class="form-control-custom w-100" id="plannerExperience" name="experience_years" min="0" max="50" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="plannerLocation" class="form-label fw-semibold">Location *</label>
-                                    <input type="text" class="form-control-custom w-100" id="plannerLocation" name="location" required>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group mt-3">
-                            <label for="plannerBio" class="form-label fw-semibold">Bio *</label>
-                            <textarea class="form-control-custom w-100" id="plannerBio" name="bio" rows="3" required></textarea>
-                        </div>
-                        
-                        <div class="row g-3 mt-2">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="plannerPassword" class="form-label fw-semibold">Password *</label>
-                                    <input type="password" class="form-control-custom w-100" id="plannerPassword" name="password" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="plannerConfirmPassword" class="form-label fw-semibold">Confirm Password *</label>
-                                    <input type="password" class="form-control-custom w-100" id="plannerConfirmPassword" name="confirm_password" required>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <button type="submit" class="btn-custom btn-primary-custom w-100 mt-3">
-                            <i class="fas fa-calendar-check me-2"></i>Create Planner Account
-                        </button>
-                    </form>
-                    
-                    <div class="text-center mt-3">
-                        <button type="button" class="btn-custom btn-outline-secondary" onclick="goBackToUserType()">
-                            <i class="fas fa-arrow-left me-2"></i>Back to Selection
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Include custom JavaScript for authentication -->
-<script src="assets/js/custom.js"></script>
+<!-- Authentication via dedicated pages: login.php and user/register.php -->
 
 

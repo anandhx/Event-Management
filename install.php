@@ -1,89 +1,109 @@
 <?php
-// Event Management System Installation Script
-// Run this file once to set up your database
+// Event Management System - Run Idempotent Schema with UI
+// Ensures database exists and executes database_setup.sql
 
-// Database configuration
-$servername = "localhost";
-$username = "root";
-$password = "";
+$host = getenv('DB_HOST') ?: 'localhost';
+$username = getenv('DB_USERNAME') ?: 'root';
+$password = getenv('DB_PASSWORD') ?: '';
+$dbName = getenv('DB_NAME') ?: 'event_management_system';
+$schemaPath = __DIR__ . DIRECTORY_SEPARATOR . 'database_setup.sql';
 
-echo "<h2>Event Management System Installation</h2>";
+header('Content-Type: text/html; charset=utf-8');
+
+echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Run Schema</title>';
+echo '<style>body{font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;max-width:860px;margin:0 auto}';
+echo '.card{background:#fff;border:1px solid #eee;border-radius:8px;padding:16px;margin:12px 0}';
+echo '.ok{color:#0a7d16}.err{color:#b00020}.warn{color:#b36b00}.muted{color:#666}.btn{display:inline-block;background:#1b74e4;color:#fff;padding:8px 12px;border-radius:6px;text-decoration:none;margin-top:8px}</style>';
+echo '</head><body>';
+echo '<h2>Event Management System - Apply Idempotent Schema</h2>';
+
+echo '<div class="card">';
+echo '<div><strong>Connection</strong></div>';
+echo '<div class="muted">Host: ' . htmlspecialchars($host) . ' | User: ' . htmlspecialchars($username) . ' | DB: ' . htmlspecialchars($dbName) . '</div>';
+echo '</div>';
 
 try {
-    // Create connection without database
-    $conn = new mysqli($servername, $username, $password);
-    
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
-    }
-    
-    echo "<p>✓ Connected to MySQL server successfully</p>";
-    
-    // Read and execute the database setup SQL
-    $sql_file = file_get_contents('database_setup.sql');
-    
-    if ($sql_file === false) {
-        die("Error: Could not read database_setup.sql file");
-    }
-    
-    // Split SQL into individual statements
-    $statements = explode(';', $sql_file);
-    
-    $success_count = 0;
-    $error_count = 0;
-    
-    foreach ($statements as $statement) {
-        $statement = trim($statement);
-        if (!empty($statement)) {
-            try {
-                if ($conn->query($statement)) {
-                    $success_count++;
-                } else {
-                    $error_count++;
-                    echo "<p style='color: red;'>Error executing: " . substr($statement, 0, 50) . "...</p>";
-                }
-            } catch (Exception $e) {
-                $error_count++;
-                echo "<p style='color: red;'>Exception: " . $e->getMessage() . "</p>";
-            }
-        }
-    }
-    
-    echo "<p>✓ Database setup completed!</p>";
-    echo "<p>Successfully executed: $success_count statements</p>";
-    if ($error_count > 0) {
-        echo "<p style='color: orange;'>Errors encountered: $error_count statements</p>";
-    }
-    
-    // Test the new database connection
-    $conn->select_db('event_management_system');
-    
-    // Test some basic queries
-    $result = $conn->query("SELECT COUNT(*) as count FROM users");
-    if ($result) {
-        $row = $result->fetch_assoc();
-        echo "<p>✓ Database test successful! Found " . $row['count'] . " users</p>";
-    }
-    
-    $result = $conn->query("SELECT COUNT(*) as count FROM event_categories");
-    if ($result) {
-        $row = $result->fetch_assoc();
-        echo "<p>✓ Found " . $row['count'] . " event categories</p>";
-    }
-    
-    echo "<h3>Default Login Credentials:</h3>";
-    echo "<p><strong>Admin:</strong> username: admin, password: password</p>";
-    echo "<p><strong>Planner:</strong> username: planner1, password: password</p>";
-    echo "<p><strong>Client:</strong> username: client1, password: password</p>";
-    
-    echo "<h3>Next Steps:</h3>";
-    echo "<p>1. Delete this install.php file for security</p>";
-    echo "<p>2. Access your system at: <a href='index.php'>index.php</a></p>";
-    echo "<p>3. Login with the default credentials above</p>";
-    
-} catch (Exception $e) {
-    echo "<p style='color: red;'>Installation failed: " . $e->getMessage() . "</p>";
+	if (!file_exists($schemaPath)) {
+		throw new RuntimeException('Schema file not found: ' . $schemaPath);
+	}
+
+	$dsn = 'mysql:host=' . $host . ';charset=utf8mb4';
+	$options = [
+		PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+		PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+		PDO::ATTR_EMULATE_PREPARES => false,
+	];
+	$pdo = new PDO($dsn, $username, $password, $options);
+	echo '<div class="card ok">Connected to MySQL server</div>';
+
+	// Ensure database exists
+	$pdo->exec('CREATE DATABASE IF NOT EXISTS `' . str_replace('`','``',$dbName) . '` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+	echo '<div class="card ok">Database ensured: ' . htmlspecialchars($dbName) . '</div>';
+
+	$pdo->exec('USE `' . str_replace('`','``',$dbName) . '`');
+
+	// Load and execute schema file as a whole
+	$schemaSql = file_get_contents($schemaPath);
+	if ($schemaSql === false) {
+		throw new RuntimeException('Failed to read schema file');
+	}
+
+	// Execute statements one-by-one and ignore idempotent errors
+	$removeBlockComments = function($sql) {
+		return preg_replace('/\/\*.*?\*\//s', '', $sql);
+	};
+	$schemaSql = $removeBlockComments($schemaSql);
+	$lines = preg_split('/\r?\n/', $schemaSql);
+	$cleanLines = [];
+	foreach ($lines as $line) {
+		$trim = ltrim($line);
+		if (strpos($trim, '--') === 0) { continue; }
+		$cleanLines[] = $line;
+	}
+	$schemaSql = implode("\n", $cleanLines);
+
+	$statements = array_filter(array_map('trim', preg_split('/;\s*(?:\r?\n|$)/m', $schemaSql)));
+	$executed = 0; $warnings = 0; $errors = [];
+	$ignorable = [1050,1061,1062,1091];
+
+	foreach ($statements as $stmt) {
+		if ($stmt === '') { continue; }
+		try {
+			$pdo->exec($stmt);
+			$executed++;
+		} catch (PDOException $e) {
+			$code = (int)($e->errorInfo[1] ?? 0);
+			if (in_array($code, $ignorable, true)) {
+				$warnings++;
+				continue;
+			}
+			$errors[] = 'Error (' . $code . '): ' . $e->getMessage();
+		}
+	}
+
+	if (empty($errors)) {
+		echo '<div class="card ok">Schema executed successfully. Statements: ' . (int)$executed . ' | Ignored: ' . (int)$warnings . '</div>';
+	} else {
+		echo '<div class="card warn">Schema completed with errors. Executed: ' . (int)$executed . ' | Ignored: ' . (int)$warnings . ' | Errors: ' . count($errors) . '</div>';
+		echo '<pre class="card" style="white-space:pre-wrap">' . htmlspecialchars(implode("\n", $errors)) . '</pre>';
+	}
+
+	// Verify required tables
+	$tables = ['users','planners','event_categories','events','event_services','bookings','reviews','messages','notifications','payments','event_tasks','event_gallery'];
+	$missing = [];
+	foreach ($tables as $t) {
+		$stmt = $pdo->query("SHOW TABLES LIKE '" . str_replace("'","''", $t) . "'");
+		if ($stmt->rowCount() === 0) { $missing[] = $t; }
+	}
+	if (empty($missing)) {
+		echo '<div class="card ok">All required tables are present.</div>';
+	} else {
+		echo '<div class="card warn">Missing tables: ' . htmlspecialchars(implode(', ', $missing)) . '</div>';
+	}
+
+} catch (Throwable $e) {
+	echo '<div class="card err">Error: ' . htmlspecialchars($e->getMessage()) . '</div>';
+	echo '<pre class="card" style="white-space:pre-wrap">' . htmlspecialchars($e->getTraceAsString()) . '</pre>';
 }
 
-$conn->close();
-?> 
+echo '</body></html>';

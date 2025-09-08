@@ -11,17 +11,20 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'client') {
 $error = '';
 $success = '';
 
-// Get available planners
+// Get available planners (approved and available)
 $available_planners = [];
-$result = $conn->query("
-    SELECT u.id, u.full_name, u.username, p.company_name, p.rating, p.total_reviews, p.specialization, p.hourly_rate
+$stmt = $conn->prepare(
+    "SELECT u.id, u.full_name, u.username, p.company_name, p.rating, p.total_reviews, p.specialization, p.hourly_rate
     FROM users u 
     JOIN planners p ON u.id = p.user_id 
-    WHERE u.status = 'active' AND u.user_type = 'planner'
-    ORDER BY p.rating DESC, p.total_reviews DESC
-");
-while ($row = $result->fetch_assoc()) {
-    $available_planners[] = $row;
+    WHERE u.status = 'active' AND u.user_type = 'planner' AND p.approval_status = 'approved' AND p.availability = 1
+    ORDER BY p.rating DESC, p.total_reviews DESC"
+);
+if ($stmt && $stmt->execute()) {
+    $res = $stmt->get_result();
+    while ($row = $res->fetch_assoc()) {
+        $available_planners[] = $row;
+    }
 }
 
 // Handle form submission
@@ -45,43 +48,42 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error = 'Budget must be greater than 0.';
     } elseif ($guest_count <= 0) {
         $error = 'Guest count must be greater than 0.';
-    } else {
+    } else if ($planner_id) {
+        $chk = $conn->prepare("SELECT 1 FROM users u JOIN planners p ON u.id = p.user_id WHERE u.id = ? AND u.status='active' AND u.user_type='planner' AND p.approval_status='approved' AND p.availability=1");
+        if ($chk) {
+            $chk->bind_param('i', $planner_id);
+            $chk->execute();
+            if ($chk->get_result()->num_rows === 0) {
+                $error = 'Selected planner is not available. Please choose another.';
+            }
+        }
+    }
+    
+    if (empty($error)) {
         try {
-            // Start transaction
             $conn->begin_transaction();
-            
-            // Insert event
-            $stmt = $conn->prepare("
-                INSERT INTO events (title, description, event_date, event_time, venue, budget, guest_count, event_type, client_id, planner_id, status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-            ");
+            $stmt = $conn->prepare(
+                "INSERT INTO events (title, description, event_date, event_time, venue, budget, guest_count, event_type, client_id, planner_id, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')"
+            );
             $stmt->bind_param("sssssdissi", $title, $description, $event_date, $event_time, $venue, $budget, $guest_count, $event_type, $_SESSION['user_id'], $planner_id);
             
             if ($stmt->execute()) {
                 $event_id = $conn->insert_id;
-                
-                // If planner is selected, create a booking
                 if ($planner_id) {
-                    $stmt = $conn->prepare("
-                        INSERT INTO bookings (event_id, client_id, planner_id, booking_date, amount, status) 
-                        VALUES (?, ?, ?, CURDATE(), ?, 'pending')
-                    ");
+                    $stmt = $conn->prepare(
+                        "INSERT INTO bookings (event_id, client_id, planner_id, booking_date, amount, status) 
+                        VALUES (?, ?, ?, CURDATE(), ?, 'pending')"
+                    );
                     $stmt->bind_param("iiid", $event_id, $_SESSION['user_id'], $planner_id, $budget);
                     $stmt->execute();
-                    
-                    // Create notification for planner
-                    $notification_title = "New Event Request";
-                    $notification_message = "You have a new event request: " . $title . " from " . $_SESSION['full_name'];
-                    
-                    $stmt = $conn->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, 'info')");
-                    $stmt->bind_param("iss", $planner_id, $notification_title, $notification_message);
+                    $notification_message = "New event request: " . $title . " from " . $_SESSION['full_name'];
+                    $stmt = $conn->prepare("INSERT INTO notifications (user_id, message, is_read, event_id) VALUES (?, ?, 0, ?)");
+                    $stmt->bind_param("isi", $planner_id, $notification_message, $event_id);
                     $stmt->execute();
                 }
-                
                 $conn->commit();
                 $success = 'Event created successfully!';
-                
-                // Clear form data
                 $title = $description = $venue = '';
                 $event_date = $event_time = '';
                 $budget = $guest_count = 0;
@@ -97,7 +99,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-// Get pre-selected planner if coming from planner selection
 $selected_planner_id = isset($_GET['planner_id']) ? (int)$_GET['planner_id'] : null;
 ?>
 
@@ -111,69 +112,19 @@ $selected_planner_id = isset($_GET['planner_id']) ? (int)$_GET['planner_id'] : n
     <link href="../assets/css/style.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body {
-            background: #f8f9fa;
-        }
-        .create-event-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        .create-event-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        .create-event-form {
-            padding: 40px;
-        }
-        .form-control {
-            border-radius: 10px;
-            border: 2px solid #e9ecef;
-            padding: 12px 15px;
-            transition: all 0.3s ease;
-        }
-        .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-        .btn-create {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 10px;
-            padding: 12px 30px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        .btn-create:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-        }
-        .planner-selection {
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .planner-card {
-            border: 2px solid #e9ecef;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 15px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .planner-card:hover {
-            border-color: #667eea;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        .planner-card.selected {
-            border-color: #667eea;
-            background: rgba(102, 126, 234, 0.1);
-        }
+        body { background: #f8f9fa; }
+        .sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+        .create-event-container { background:#fff; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow:hidden; }
+        .create-event-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#fff; padding:30px; text-align:center; }
+        .create-event-form { padding:40px; }
+        .form-control { border-radius:10px; border:2px solid #e9ecef; padding:12px 15px; transition: all .3s ease; }
+        .form-control:focus { border-color:#667eea; box-shadow: 0 0 0 0.2rem rgba(102,126,234,.25); }
+        .btn-create { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border:none; border-radius:10px; padding:12px 30px; font-weight:600; }
+        .planner-selection { background:#f8f9fa; border-radius:15px; padding:20px; margin-bottom:20px; }
+        .planner-card { border:2px solid #e9ecef; border-radius:15px; padding:20px; margin-bottom:15px; cursor:pointer; transition: all .3s; }
+        .planner-card:hover { border-color:#667eea; transform: translateY(-2px); box-shadow:0 5px 15px rgba(0,0,0,.1); }
+        .planner-card.selected { border-color:#667eea; background: rgba(102,126,234,.1); }
+        .main-content { background:#f8f9fa; min-height:100vh; }
     </style>
 </head>
 <body>
@@ -181,25 +132,17 @@ $selected_planner_id = isset($_GET['planner_id']) ? (int)$_GET['planner_id'] : n
         <div class="row">
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 px-0">
-                <div class="sidebar p-3" style="min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="sidebar p-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                     <div class="text-center mb-4">
                         <h4 class="text-white"><i class="fas fa-user me-2"></i>User Dashboard</h4>
                         <p class="text-white-50 small">Welcome, <?php echo $_SESSION['full_name']; ?></p>
                     </div>
                     
                     <nav class="nav flex-column">
-                        <a class="nav-link" href="user_index.php" style="color: rgba(255,255,255,0.8); padding: 12px 20px; margin: 5px 0; border-radius: 10px; transition: all 0.3s ease;">
-                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                        </a>
-                        <a class="nav-link active" href="create_event.php" style="color: white; background: rgba(255,255,255,0.1); padding: 12px 20px; margin: 5px 0; border-radius: 10px; transition: all 0.3s ease;">
-                            <i class="fas fa-plus me-2"></i>Create Event
-                        </a>
-                        <a class="nav-link" href="my_events.php" style="color: rgba(255,255,255,0.8); padding: 12px 20px; margin: 5px 0; border-radius: 10px; transition: all 0.3s ease;">
-                            <i class="fas fa-calendar me-2"></i>My Events
-                        </a>
-                        <a class="nav-link" href="user_index.php" style="color: rgba(255,255,255,0.8); padding: 12px 20px; margin: 5px 0; border-radius: 10px; transition: all 0.3s ease;">
-                            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
-                        </a>
+                        <a class="nav-link" href="user_index.php" style="color: rgba(255,255,255,0.8); padding: 12px 20px; margin: 5px 0; border-radius: 10px; transition: all 0.3s ease;"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a>
+                        <a class="nav-link active" href="create_event.php" style="color: white; background: rgba(255,255,255,0.1); padding: 12px 20px; margin: 5px 0; border-radius: 10px; transition: all 0.3s ease;"><i class="fas fa-plus me-2"></i>Create Event</a>
+                        <a class="nav-link" href="my_events.php" style="color: rgba(255,255,255,0.8); padding: 12px 20px; margin: 5px 0; border-radius: 10px; transition: all 0.3s ease;"><i class="fas fa-calendar me-2"></i>My Events</a>
+                        <a class="nav-link" href="user_index.php" style="color: rgba(255,255,255,0.8); padding: 12px 20px; margin: 5px 0; border-radius: 10px; transition: all 0.3s ease;"><i class="fas fa-arrow-left me-2"></i>Back to Dashboard</a>
                     </nav>
                 </div>
             </div>
@@ -207,8 +150,8 @@ $selected_planner_id = isset($_GET['planner_id']) ? (int)$_GET['planner_id'] : n
             <!-- Main Content -->
             <div class="col-md-9 col-lg-10 px-0">
                 <div class="main-content p-4">
-                    <div class="row justify-content-center">
-                        <div class="col-lg-10">
+                    <div class="row">
+                        <div class="col-12">
                             <div class="create-event-container">
                                 <div class="create-event-header">
                                     <h2><i class="fas fa-calendar-plus me-2"></i>Create New Event</h2>
@@ -321,18 +264,9 @@ $selected_planner_id = isset($_GET['planner_id']) ? (int)$_GET['planner_id'] : n
                                                     <div class="row align-items-center">
                                                         <div class="col-md-8">
                                                             <h6 class="mb-1"><?php echo htmlspecialchars($planner['full_name']); ?></h6>
-                                                            <p class="text-muted small mb-1">
-                                                                <i class="fas fa-building me-1"></i>
-                                                                <?php echo htmlspecialchars($planner['company_name']); ?>
-                                                            </p>
-                                                            <p class="text-muted small mb-1">
-                                                                <i class="fas fa-tags me-1"></i>
-                                                                <?php echo htmlspecialchars($planner['specialization']); ?>
-                                                            </p>
-                                                            <p class="text-muted small mb-0">
-                                                                <i class="fas fa-dollar-sign me-1"></i>
-                                                                $<?php echo $planner['hourly_rate']; ?>/hour
-                                                            </p>
+                                                            <p class="text-muted small mb-1"><i class="fas fa-building me-1"></i><?php echo htmlspecialchars($planner['company_name']); ?></p>
+                                                            <p class="text-muted small mb-1"><i class="fas fa-tags me-1"></i><?php echo htmlspecialchars($planner['specialization']); ?></p>
+                                                            <p class="text-muted small mb-0"><i class="fas fa-dollar-sign me-1"></i>$<?php echo $planner['hourly_rate']; ?>/hour</p>
                                                         </div>
                                                         <div class="col-md-4 text-end">
                                                             <div class="text-warning mb-2">
@@ -351,9 +285,7 @@ $selected_planner_id = isset($_GET['planner_id']) ? (int)$_GET['planner_id'] : n
                                         <input type="hidden" name="planner_id" id="planner_id" value="<?php echo $selected_planner_id; ?>">
                                         
                                         <div class="d-grid">
-                                            <button type="submit" class="btn btn-primary btn-create">
-                                                <i class="fas fa-calendar-plus me-2"></i>Create Event
-                                            </button>
+                                            <button type="submit" class="btn btn-primary btn-create"><i class="fas fa-calendar-plus me-2"></i>Create Event</button>
                                         </div>
                                     </form>
                                 </div>
@@ -367,7 +299,6 @@ $selected_planner_id = isset($_GET['planner_id']) ? (int)$_GET['planner_id'] : n
 
     <script src="../assets/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Show/hide planner selection based on radio button
         document.querySelectorAll('input[name="planner_option"]').forEach(radio => {
             radio.addEventListener('change', function() {
                 const plannerSelection = document.getElementById('plannerSelection');
@@ -376,33 +307,17 @@ $selected_planner_id = isset($_GET['planner_id']) ? (int)$_GET['planner_id'] : n
                 } else {
                     plannerSelection.classList.add('d-none');
                     document.getElementById('planner_id').value = '';
-                    // Remove selected class from all planner cards
-                    document.querySelectorAll('.planner-card').forEach(card => {
-                        card.classList.remove('selected');
-                    });
+                    document.querySelectorAll('.planner-card').forEach(card => card.classList.remove('selected'));
                 }
             });
         });
-        
-        // Select planner
         function selectPlanner(plannerId, cardElement) {
-            // Remove selected class from all planner cards
-            document.querySelectorAll('.planner-card').forEach(card => {
-                card.classList.remove('selected');
-            });
-            
-            // Add selected class to clicked card
+            document.querySelectorAll('.planner-card').forEach(card => card.classList.remove('selected'));
             cardElement.classList.add('selected');
-            
-            // Update hidden input
             document.getElementById('planner_id').value = plannerId;
-            
-            // Check the select planner radio button
             document.getElementById('select_planner').checked = true;
             document.getElementById('plannerSelection').classList.remove('d-none');
         }
-        
-        // Set minimum date to today
         document.getElementById('event_date').min = new Date().toISOString().split('T')[0];
     </script>
 </body>

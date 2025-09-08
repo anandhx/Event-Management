@@ -217,12 +217,25 @@ CREATE INDEX idx_planners_approval ON planners(approval_status);
 INSERT INTO users (username, email, password, full_name, user_type, status) VALUES
 ('admin', 'admin@ems.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'System Administrator', 'admin', 'active');
 
--- Insert sample event planner for testing
-INSERT INTO users (username, email, password, full_name, user_type, status) VALUES
-('planner1', 'planner@ems.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Sample Event Planner', 'planner', 'active');
+-- Kerala-based sample planners (password: password)
+INSERT INTO users (username, email, password, full_name, user_type, status, address) VALUES
+('planner_kochi', 'kochi.planner@ems.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Kochi Events Pro', 'planner', 'active', 'Kochi, Kerala'),
+('planner_tvm', 'tvm.planner@ems.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Trivandrum Elite Planners', 'planner', 'active', 'Thiruvananthapuram, Kerala'),
+('planner_calicut', 'calicut.planner@ems.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Calicut Grand Events', 'planner', 'active', 'Kozhikode, Kerala'),
+('planner_kannur', 'kannur.planner@ems.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Kannur Celebration Co', 'planner', 'active', 'Kannur, Kerala'),
+('planner_kollam', 'kollam.planner@ems.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Kollam Royal Events', 'planner', 'active', 'Kollam, Kerala');
 
-INSERT INTO planners (user_id, company_name, specialization, experience_years, approval_status, availability) VALUES
-(2, 'Sample Event Company', 'Weddings, Corporate Events', 5, 'approved', TRUE);
+-- Create planner profiles for Kerala planners (approved & available)
+INSERT INTO planners (user_id, company_name, specialization, experience_years, approval_status, availability, location, hourly_rate, rating, total_reviews) 
+SELECT id, 'Kochi Event Studio', 'Weddings, Corporate Events', 7, 'approved', TRUE, 'Kochi, Kerala', 45.00, 4.7, 85 FROM users WHERE username = 'planner_kochi';
+INSERT INTO planners (user_id, company_name, specialization, experience_years, approval_status, availability, location, hourly_rate, rating, total_reviews) 
+SELECT id, 'Trivandrum Elite Events', 'Weddings, Conferences', 8, 'approved', TRUE, 'Thiruvananthapuram, Kerala', 50.00, 4.8, 102 FROM users WHERE username = 'planner_tvm';
+INSERT INTO planners (user_id, company_name, specialization, experience_years, approval_status, availability, location, hourly_rate, rating, total_reviews) 
+SELECT id, 'Calicut Grandeur Planners', 'Birthdays, Anniversaries', 5, 'approved', TRUE, 'Kozhikode, Kerala', 35.00, 4.5, 60 FROM users WHERE username = 'planner_calicut';
+INSERT INTO planners (user_id, company_name, specialization, experience_years, approval_status, availability, location, hourly_rate, rating, total_reviews) 
+SELECT id, 'Kannur Celebrations', 'Corporate, Weddings', 6, 'approved', TRUE, 'Kannur, Kerala', 40.00, 4.6, 74 FROM users WHERE username = 'planner_kannur';
+INSERT INTO planners (user_id, company_name, specialization, experience_years, approval_status, availability, location, hourly_rate, rating, total_reviews) 
+SELECT id, 'Kollam Royale Events', 'Weddings, Cultural Events', 9, 'approved', TRUE, 'Kollam, Kerala', 55.00, 4.9, 120 FROM users WHERE username = 'planner_kollam';
 
 -- Insert sample client for testing
 INSERT INTO users (username, email, password, full_name, user_type, status) VALUES

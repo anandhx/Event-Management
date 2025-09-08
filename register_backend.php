@@ -5,13 +5,28 @@ require_once 'includes/functions.php';
 
 $error = '';
 $success = '';
+$formErrors = [
+	'user_type' => '',
+	'username' => '',
+	'email' => '',
+	'password' => '',
+	'confirm_password' => '',
+	'full_name' => '',
+	'phone' => '',
+	'address' => '',
+	'company_name' => '',
+	'specialization' => '',
+	'experience_years' => '',
+	'location' => '',
+	'bio' => ''
+];
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $user_type = sanitizeInput($_POST['user_type']);
     
     // Validate user type
     if (!in_array($user_type, ['client', 'planner'])) {
-        $error = 'Invalid user type selected.';
+        $formErrors['user_type'] = 'Invalid user type selected.';
     } else {
         // Common validation for both user types
         $username = sanitizeInput($_POST['username']);
@@ -23,19 +38,44 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $address = sanitizeInput($_POST['address']);
         
         // Validation
-        if (empty($username) || empty($email) || empty($password) || empty($confirm_password) || empty($full_name)) {
-            $error = 'All required fields must be filled.';
-        } elseif (strlen($username) < 3 || strlen($username) > 20) {
-            $error = 'Username must be between 3 and 20 characters.';
-        } elseif (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
-            $error = 'Username can only contain letters, numbers, and underscores.';
-        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $error = 'Please enter a valid email address.';
-        } elseif (strlen($password) < 8) {
-            $error = 'Password must be at least 8 characters long.';
-        } elseif ($password !== $confirm_password) {
-            $error = 'Passwords do not match.';
-        } else {
+        if ($username === '') { $formErrors['username'] = 'Username is required.'; }
+        elseif (strlen($username) < 3 || strlen($username) > 20) { $formErrors['username'] = 'Username must be 3-20 characters.'; }
+        elseif (!preg_match('/^[a-zA-Z_]+$/', $username)) { $formErrors['username'] = 'Only letters and underscores allowed.'; }
+
+        if ($email === '') { $formErrors['email'] = 'Email is required.'; }
+        elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) { $formErrors['email'] = 'Invalid email address.'; }
+
+        if ($password === '') { $formErrors['password'] = 'Password is required.'; }
+        elseif (strlen($password) < 8) { $formErrors['password'] = 'At least 8 characters.'; }
+
+        if ($confirm_password === '') { $formErrors['confirm_password'] = 'Please confirm your password.'; }
+        elseif ($password !== $confirm_password) { $formErrors['confirm_password'] = 'Passwords do not match.'; }
+
+        if ($full_name === '') { $formErrors['full_name'] = 'Full name is required.'; }
+        elseif (!preg_match('/^[a-zA-Z\s]+$/', $full_name)) { $formErrors['full_name'] = 'Letters and spaces only.'; }
+
+        if ($phone !== '' && !preg_match('/^\d{10}$/', $phone)) { $formErrors['phone'] = 'Phone must be exactly 10 digits.'; }
+
+        // Planner-only extra validations
+        if ($user_type === 'planner') {
+            $company_name = sanitizeInput($_POST['company_name'] ?? '');
+            $specialization = sanitizeInput($_POST['specialization'] ?? '');
+            $experience_years = isset($_POST['experience_years']) ? trim((string)$_POST['experience_years']) : '';
+            $location = sanitizeInput($_POST['location'] ?? '');
+            $bio = sanitizeInput($_POST['bio'] ?? '');
+
+            if ($company_name === '') { $formErrors['company_name'] = 'Company name is required.'; }
+            elseif (!preg_match('/^[a-zA-Z\s]+$/', $company_name)) { $formErrors['company_name'] = 'Only letters and spaces (no special characters).'; }
+
+            if ($experience_years === '') { $formErrors['experience_years'] = 'Experience years is required.'; }
+            elseif (!preg_match('/^\d+$/', $experience_years)) { $formErrors['experience_years'] = 'Experience must be a number.'; }
+
+            if ($bio === '' || strlen($bio) < 10) { $formErrors['bio'] = 'Bio must be at least 10 characters.'; }
+        }
+
+        $hasFormErrors = implode('', $formErrors) !== '';
+
+        if (!$hasFormErrors) {
             // Check if username or email already exists
             $stmt = $conn->prepare("SELECT id FROM users WHERE username = ? OR email = ?");
             $stmt->bind_param("ss", $username, $email);
@@ -44,6 +84,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
             if ($result->num_rows > 0) {
                 $error = 'Username or email already exists.';
+                // Assign field-level messages for better UX
+                while ($row = $result->fetch_assoc()) {}
+                // We cannot know which one conflicts without extra query; check separately
+                $stmt2 = $conn->prepare("SELECT id FROM users WHERE username = ?");
+                $stmt2->bind_param("s", $username);
+                $stmt2->execute();
+                if ($stmt2->get_result()->num_rows > 0) { $formErrors['username'] = 'Username already exists.'; }
+                $stmt2 = $conn->prepare("SELECT id FROM users WHERE email = ?");
+                $stmt2->bind_param("s", $email);
+                $stmt2->execute();
+                if ($stmt2->get_result()->num_rows > 0) { $formErrors['email'] = 'Email already exists.'; }
             } else {
                 // Hash password
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
@@ -61,11 +112,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         
                         // If planner, insert into planners table
                         if ($user_type == 'planner') {
-                            $company_name = sanitizeInput($_POST['company_name']);
-                            $specialization = sanitizeInput($_POST['specialization']);
-                            $experience_years = (int)$_POST['experience_years'];
-                            $location = sanitizeInput($_POST['location']);
-                            $bio = sanitizeInput($_POST['bio']);
+                            // Use already sanitized/validated variables
+                            $experience_years = (int)$experience_years;
                             
                             $stmt = $conn->prepare("INSERT INTO planners (user_id, company_name, specialization, experience_years, location, bio, approval_status) VALUES (?, ?, ?, ?, ?, ?, 'pending')");
                             $stmt->bind_param("ississ", $user_id, $company_name, $specialization, $experience_years, $location, $bio);
@@ -98,13 +146,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 // Store messages in session for display
-if ($error) {
-    $_SESSION['error_message'] = $error;
-} elseif ($success) {
-    $_SESSION['success_message'] = $success;
-}
+// Store messages and field-level errors for the form page
+if ($error) { $_SESSION['error_message'] = $error; }
+if ($success) { $_SESSION['success_message'] = $success; }
+$_SESSION['form_errors'] = $formErrors;
+$_SESSION['old'] = [
+	'user_type' => $user_type ?? '',
+	'username' => $username ?? '',
+	'email' => $email ?? '',
+	'full_name' => $full_name ?? '',
+	'phone' => $phone ?? '',
+	'address' => $address ?? ''
+];
 
-// Redirect back to index page
-header('Location: index.php');
+// Redirect appropriately
+if ($success) {
+    header('Location: login.php');
+} else {
+    header('Location: user/register.php');
+}
 exit();
 ?> 

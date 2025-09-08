@@ -6,6 +6,16 @@ require_once 'includes/functions.php';
 $error = '';
 $success = '';
 
+// Flash messages from redirects
+if (isset($_SESSION['error_message'])) {
+    $error = $_SESSION['error_message'];
+    unset($_SESSION['error_message']);
+}
+if (isset($_SESSION['success_message'])) {
+    $success = $_SESSION['success_message'];
+    unset($_SESSION['success_message']);
+}
+
 // Check if user is already logged in
 if (isset($_SESSION['user_id'])) {
     $user_type = $_SESSION['user_type'];
@@ -31,41 +41,49 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $user = authenticate($conn, $username, $password);
         
         if ($user) {
-            // Set session variables
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['full_name'] = $user['full_name'];
-            $_SESSION['user_type'] = $user['user_type'];
-            
-            // Get additional info for planners
+            // For planners, enforce approval before logging in
             if ($user['user_type'] == 'planner') {
                 $planner_info = getPlannerInfo($conn, $user['id']);
-                if ($planner_info) {
-                    $_SESSION['company_name'] = $planner_info['company_name'];
-                    $_SESSION['planner_id'] = $planner_info['id'];
+                $status = $planner_info['approval_status'] ?? 'pending';
+                if ($status !== 'approved') {
+                    if ($status === 'rejected') {
+                        $error = 'Your planner account has been rejected. Please contact support.';
+                    } else {
+                        $error = 'Your planner account is pending approval.';
+                    }
                 }
             }
-            
-            // Redirect based on user type
-            if ($user['user_type'] == 'admin') {
-                header('Location: admin/admin_index.php');
-            } elseif ($user['user_type'] == 'planner') {
-                header('Location: planner/planner_index.php');
-            } else {
-                header('Location: user/user_index.php');
+
+            if (empty($error)) {
+                // Set session variables
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['full_name'] = $user['full_name'];
+                $_SESSION['user_type'] = $user['user_type'];
+
+                // Additional info for planners
+                if (isset($planner_info) && $planner_info) {
+                    $_SESSION['company_name'] = $planner_info['company_name'] ?? null;
+                    $_SESSION['planner_id'] = $planner_info['id'] ?? null;
+                }
+
+                // Redirect based on user type
+                if ($user['user_type'] == 'admin') {
+                    header('Location: admin/admin_index.php');
+                } elseif ($user['user_type'] == 'planner') {
+                    header('Location: planner/planner_index.php');
+                } else {
+                    header('Location: user/user_index.php');
+                }
+                exit();
             }
-            exit();
         } else {
             $error = 'Invalid username or password.';
         }
     }
 }
 
-// Display error messages from other pages
-if (isset($_SESSION['error_message'])) {
-    $error = $_SESSION['error_message'];
-    unset($_SESSION['error_message']);
-}
+// (Kept) Any other page may still set $_SESSION['error_message'] before reaching here
 ?>
 
 <!DOCTYPE html>
