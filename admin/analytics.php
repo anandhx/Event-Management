@@ -143,7 +143,7 @@ $avg_event_budget = array_sum(array_column($event_type_stats, 'avg_budget')) / m
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 px-0">
+            <div class="px-0">
                 <div class="admin-sidebar p-4" id="adminSidebar">
                     <div class="text-center mb-5">
                         <div class="mb-3">
@@ -174,6 +174,10 @@ $avg_event_budget = array_sum(array_column($event_type_stats, 'avg_budget')) / m
                             <i class="fas fa-chart-bar"></i>
                             <span>Analytics</span>
                         </a>
+                        <a class="nav-link" href="contact_messages.php">
+                            <i class="fas fa-envelope-open-text"></i>
+                            <span>Contact Messages</span>
+                        </a>
                         <a class="nav-link" href="settings.php">
                             <i class="fas fa-cog"></i>
                             <span>Settings</span>
@@ -187,7 +191,7 @@ $avg_event_budget = array_sum(array_column($event_type_stats, 'avg_budget')) / m
             </div>
             
             <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 px-0">
+            <div class="col-12 px-0">
                 <div class="main-content">
                     <!-- Header -->
                     <div class="welcome-section">
@@ -221,7 +225,7 @@ $avg_event_budget = array_sum(array_column($event_type_stats, 'avg_budget')) / m
                                 <div class="stat-icon bg-primary">
                                     <i class="fas fa-dollar-sign"></i>
                                 </div>
-                                <div class="stat-value">$<?php echo number_format($total_revenue); ?></div>
+                                <div class="stat-value">₹<?php echo number_format($total_revenue); ?></div>
                                 <div class="stat-label">Total Revenue</div>
                             </div>
                         </div>
@@ -251,7 +255,7 @@ $avg_event_budget = array_sum(array_column($event_type_stats, 'avg_budget')) / m
                                 <div class="stat-icon bg-warning">
                                     <i class="fas fa-chart-line"></i>
                                 </div>
-                                <div class="stat-value">$<?php echo number_format($avg_revenue_per_day, 0); ?></div>
+                                <div class="stat-value">₹<?php echo number_format($avg_revenue_per_day, 0); ?></div>
                                 <div class="stat-label">Avg Daily Revenue</div>
                             </div>
                         </div>
@@ -331,7 +335,7 @@ $avg_event_budget = array_sum(array_column($event_type_stats, 'avg_budget')) / m
                                         </td>
                                         <td><?php echo htmlspecialchars($planner['company_name'] ?? 'N/A'); ?></td>
                                         <td><?php echo $planner['total_events']; ?></td>
-                                        <td>$<?php echo number_format($planner['avg_budget'] ?? 0); ?></td>
+                                        <td>₹<?php echo number_format($planner['avg_budget'] ?? 0); ?></td>
                                         <td><?php echo $planner['completed_events']; ?></td>
                                         <td>
                                             <?php if ($planner['avg_rating']): ?>
@@ -347,32 +351,7 @@ $avg_event_budget = array_sum(array_column($event_type_stats, 'avg_budget')) / m
                         </div>
                     </div>
 
-                    <!-- Export Section -->
-                    <div class="export-section mb-4">
-                        <h5><i class="fas fa-download me-2"></i>Export Reports</h5>
-                        <div class="row">
-                            <div class="col-md-3 mb-2">
-                                <button class="btn btn-outline-primary w-100" onclick="exportRevenueReport()">
-                                    <i class="fas fa-file-excel"></i> Revenue Report
-                                </button>
-                            </div>
-                            <div class="col-md-3 mb-2">
-                                <button class="btn btn-outline-success w-100" onclick="exportEventReport()">
-                                    <i class="fas fa-file-excel"></i> Event Report
-                                </button>
-                            </div>
-                            <div class="col-md-3 mb-2">
-                                <button class="btn btn-outline-info w-100" onclick="exportUserReport()">
-                                    <i class="fas fa-file-excel"></i> User Report
-                                </button>
-                            </div>
-                            <div class="col-md-3 mb-2">
-                                <button class="btn btn-outline-warning w-100" onclick="exportPlannerReport()">
-                                    <i class="fas fa-file-excel"></i> Planner Report
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    
                 </div>
             </div>
         </div>
@@ -392,7 +371,7 @@ $avg_event_budget = array_sum(array_column($event_type_stats, 'avg_budget')) / m
             data: {
                 labels: <?php echo json_encode(array_column($monthly_revenue, 'month')); ?>,
                 datasets: [{
-                    label: 'Revenue ($)',
+                    label: 'Revenue (₹)',
                     data: <?php echo json_encode(array_column($monthly_revenue, 'revenue')); ?>,
                     borderColor: '#667eea',
                     backgroundColor: 'rgba(102, 126, 234, 0.1)',
@@ -420,7 +399,7 @@ $avg_event_budget = array_sum(array_column($event_type_stats, 'avg_budget')) / m
                         position: 'left',
                         title: {
                             display: true,
-                            text: 'Revenue ($)'
+                            text: 'Revenue (₹)'
                         }
                     },
                     y1: {
@@ -470,7 +449,7 @@ $avg_event_budget = array_sum(array_column($event_type_stats, 'avg_budget')) / m
             data: {
                 labels: <?php echo json_encode(array_column($revenue_data, 'date')); ?>,
                 datasets: [{
-                    label: 'Daily Revenue ($)',
+                    label: 'Daily Revenue (₹)',
                     data: <?php echo json_encode(array_column($revenue_data, 'daily_revenue')); ?>,
                     backgroundColor: 'rgba(75, 192, 192, 0.6)',
                     borderColor: 'rgba(75, 192, 192, 1)',
@@ -565,23 +544,7 @@ $avg_event_budget = array_sum(array_column($event_type_stats, 'avg_budget')) / m
             }
         });
 
-        // Export functions
-        function exportRevenueReport() {
-            alert('Revenue report export - Coming soon!');
-        }
-
-        function exportEventReport() {
-            alert('Event report export - Coming soon!');
-        }
-
-        function exportUserReport() {
-            alert('User report export - Coming soon!');
-        }
-
-        function exportPlannerReport() {
-            alert('Planner report export - Coming soon!');
-        }
-
+        
         // Auto-hide sidebar on mobile when clicking outside
         document.addEventListener('click', function(e) {
             const sidebar = document.getElementById('adminSidebar');

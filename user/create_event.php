@@ -243,12 +243,7 @@ $selected_planner_id = isset($_GET['planner_id']) ? (int)$_GET['planner_id'] : n
                                         <p class="text-muted">You can select a planner now or leave it unassigned and choose later.</p>
                                         
                                         <div class="planner-selection">
-                                            <div class="form-check mb-3">
-                                                <input class="form-check-input" type="radio" name="planner_option" id="no_planner" value="no" <?php echo !$selected_planner_id ? 'checked' : ''; ?>>
-                                                <label class="form-check-label" for="no_planner">
-                                                    <strong>No planner for now</strong> - I'll choose later
-                                                </label>
-                                            </div>
+                                    
                                             
                                             <div class="form-check mb-3">
                                                 <input class="form-check-input" type="radio" name="planner_option" id="select_planner" value="yes" <?php echo $selected_planner_id ? 'checked' : ''; ?>>
@@ -275,6 +270,9 @@ $selected_planner_id = isset($_GET['planner_id']) ? (int)$_GET['planner_id'] : n
                                                                 <?php endfor; ?>
                                                             </div>
                                                             <small class="text-muted">(<?php echo $planner['total_reviews']; ?> reviews)</small>
+                                                            <div class="mt-2">
+                                                                <button type="button" class="btn btn-sm btn-outline-primary" onclick='showPortfolio(<?php echo (int)$planner['id']; ?>, <?php echo json_encode($planner["full_name"]); ?>)'><i class="fas fa-images me-1"></i>View Work</button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -299,6 +297,21 @@ $selected_planner_id = isset($_GET['planner_id']) ? (int)$_GET['planner_id'] : n
 
     <script src="../assets/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Ensure Bootstrap JS is available (fallback to CDN if local missing)
+        function loadScriptOnce(src, id) {
+            return new Promise((resolve, reject) => {
+                if (document.getElementById(id)) { resolve(); return; }
+                const s = document.createElement('script');
+                s.src = src; s.id = id; s.async = true;
+                s.onload = () => resolve();
+                s.onerror = () => reject(new Error('Failed to load ' + src));
+                document.body.appendChild(s);
+            });
+        }
+        async function ensureBootstrapJs() {
+            if (window.bootstrap && window.bootstrap.Modal) return;
+            try { await loadScriptOnce('https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js', 'bootstrapCdn'); } catch (e) {}
+        }
         document.querySelectorAll('input[name="planner_option"]').forEach(radio => {
             radio.addEventListener('change', function() {
                 const plannerSelection = document.getElementById('plannerSelection');
@@ -319,6 +332,66 @@ $selected_planner_id = isset($_GET['planner_id']) ? (int)$_GET['planner_id'] : n
             document.getElementById('plannerSelection').classList.remove('d-none');
         }
         document.getElementById('event_date').min = new Date().toISOString().split('T')[0];
+
+        // Portfolio modal logic
+        function ensureModal() {
+            if (document.getElementById('portfolioModal')) return;
+            const modalHtml = `
+            <div class="modal fade" id="portfolioModal" tabindex="-1">
+              <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title"><i class=\"fas fa-images me-2\"></i>Portfolio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <div id="portfolioGrid" class="row g-3"></div>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        window.showPortfolio = async function(plannerId, name) {
+            ensureModal();
+            await ensureBootstrapJs();
+            const modalEl = document.getElementById('portfolioModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            const title = modalEl.querySelector('.modal-title');
+            if (title) title.innerHTML = `<i class=\"fas fa-images me-2\"></i>${name}'s Portfolio`;
+            const grid = modalEl.querySelector('#portfolioGrid');
+            grid.innerHTML = '<div class="text-muted">Loading...</div>';
+            try {
+                const res = await fetch(`../planner/portfolio_fetch.php?planner_id=${plannerId}`);
+                const data = await res.json();
+                if (!Array.isArray(data) || data.length === 0) {
+                    grid.innerHTML = '<p class="text-muted mb-0">No images uploaded yet.</p>';
+                } else {
+                    const base = '../';
+                    grid.innerHTML = data.map(it => {
+                        let src = it.image_path || '';
+                        if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('/')) {
+                            // absolute
+                        } else {
+                            src = base + src.replace(/^\.\/?/, '');
+                        }
+                        const cap = it.caption ? `<div class=\"card-body p-2\"><small class=\"text-muted\">${it.caption}</small></div>` : '';
+                        return `
+                        <div class=\"col-md-4\">
+                            <div class=\"card\">
+                                <img src=\"${src}\" class=\"card-img-top\" alt=\"\">
+                                ${cap}
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+                }
+                modal.show();
+            } catch (e) {
+                grid.innerHTML = '<div class="text-danger">Failed to load portfolio</div>';
+                modal.show();
+            }
+        }
     </script>
 </body>
 </html> 

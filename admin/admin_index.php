@@ -104,7 +104,7 @@ for ($i = 5; $i >= 0; $i--) {
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 px-0">
+            <div class="px-0">
                 <div class="admin-sidebar p-4" id="adminSidebar">
                     <div class="text-center mb-5">
                         <div class="mb-3">
@@ -135,6 +135,10 @@ for ($i = 5; $i >= 0; $i--) {
                             <i class="fas fa-chart-bar"></i>
                             <span>Analytics</span>
                         </a>
+                        <a class="nav-link" href="contact_messages.php">
+                            <i class="fas fa-envelope-open-text"></i>
+                            <span>Contact Messages</span>
+                        </a>
                         <a class="nav-link" href="settings.php">
                             <i class="fas fa-cog"></i>
                             <span>Settings</span>
@@ -148,7 +152,7 @@ for ($i = 5; $i >= 0; $i--) {
             </div>
             
             <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 px-0">
+            <div class="col-12 px-0">
                 <div class="main-content">
                     <!-- Welcome Section -->
                     <div class="welcome-section">

@@ -151,7 +151,7 @@ $messages_count = getUnreadMessagesCount($conn, $_SESSION['user_id']);
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h2><i class="fas fa-tachometer-alt me-2"></i>Welcome back, <?php echo $_SESSION['full_name']; ?>!</h2>
                         <div class="d-flex gap-2">
-                            <a href="portfolio.php" class="btn btn-primary"><i class="fas fa-edit me-2"></i>Update Portfolio</a>
+                            <a href="portfolio.php" class="btn btn-primary"><i class="fas  me-2"></i> Portfolio</a>
                         </div>
                     </div>
                     

@@ -6,6 +6,7 @@
                     <div class="mb-4">
                         <h4 class="footer-title">EventPro</h4>
                         <p class="text-secondary">Creating unforgettable events with professional planning and execution. Your vision, our expertise.</p>
+                        <img src="assets/img/new/rings%20png.png" alt="Decor" style="width:40px; height:40px; object-fit:contain; opacity:0.8;">
                     </div>
                     <div class="d-flex gap-3">
                         <a href="#" class="btn-custom btn-primary-custom rounded-circle p-2">

@@ -2,6 +2,7 @@
 session_start();
 require_once 'includes/db.php';
 require_once 'includes/functions.php';
+require_once 'includes/mailer.php';
 
 $error = '';
 $success = '';
@@ -123,13 +124,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             }
                         }
                         
-                        // Commit transaction
-                        $conn->commit();
-                        
-                        $success = 'Registration successful! You can now login.';
-                        
-                        // Redirect to login page after 2 seconds
-                        header("refresh:2;url=login.php");
+                        // Generate OTP and store (only if table exists)
+                        $otpTableCheck = $conn->query("SHOW TABLES LIKE 'otp_verifications'");
+                        if ($otpTableCheck && $otpTableCheck->num_rows > 0) {
+                            $otp = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+                            $expiresAt = date('Y-m-d H:i:s', time() + 10 * 60); // 10 minutes
+                            $insOtp = $conn->prepare("INSERT INTO otp_verifications (user_id, email, otp_code, expires_at) VALUES (?, ?, ?, ?)");
+                            $insOtp->bind_param('isss', $user_id, $email, $otp, $expiresAt);
+                            if (!$insOtp->execute()) {
+                                throw new Exception('Failed to create verification OTP.');
+                            }
+                            // Send OTP email
+                            $subject = 'Verify your email - Event Management System';
+                            $body = "Hello " . htmlspecialchars($full_name) . ",\n\nYour verification code is: " . $otp . "\n\nThis code will expire in 10 minutes.";
+                            list($sentOk, $sendErr) = ems_send_email($email, $full_name ?: $username, $subject, nl2br($body));
+                            if (!$sentOk) {
+                                $_SESSION['error_message'] = 'Registration successful, but failed to send OTP email. Please use the code shown below.';
+                                $_SESSION['dev_otp_code'] = $otp;
+                            }
+                            // Set success message and redirect to OTP verification
+                            $_SESSION['success_message'] = 'Registration successful! Please verify the OTP sent to your email.';
+                            $_SESSION['pending_verify_email'] = $email;
+                            $_SESSION['pending_verify_user'] = $user_id;
+                            $conn->commit();
+                            header('Location: verify_otp.php');
+                            exit();
+                        } else {
+                            // If OTP table missing, just commit and allow login (fallback)
+                            $conn->commit();
+                            $_SESSION['success_message'] = 'Registration successful! You can now login.';
+                        }
                         
                     } else {
                         throw new Exception('Failed to create user account.');

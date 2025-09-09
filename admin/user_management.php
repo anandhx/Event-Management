@@ -216,7 +216,7 @@ while ($row = $status_result->fetch_assoc()) {
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 px-0">
+            <div class="px-0">
                 <div class="admin-sidebar p-4" id="adminSidebar">
                     <div class="sidebar-header">
                         <div class="mb-3">
@@ -247,6 +247,10 @@ while ($row = $status_result->fetch_assoc()) {
                             <i class="fas fa-chart-bar"></i>
                             <span>Analytics</span>
                         </a>
+                        <a class="nav-link" href="contact_messages.php">
+                            <i class="fas fa-envelope-open-text"></i>
+                            <span>Contact Messages</span>
+                        </a>
                         <a class="nav-link" href="settings.php">
                             <i class="fas fa-cog"></i>
                             <span>Settings</span>
@@ -260,7 +264,7 @@ while ($row = $status_result->fetch_assoc()) {
             </div>
             
             <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 px-0">
+            <div class="col-12 px-0">
                 <div class="main-content">
                     <!-- Page Header -->
                     <div class="page-header">
@@ -442,9 +446,7 @@ while ($row = $status_result->fetch_assoc()) {
                                                     <?php endif; ?>
                                                     
                                                     <?php if ($user['status'] === 'active'): ?>
-                                                        <button class="btn btn-warning btn-action" onclick="blockUser(<?php echo $user['id']; ?>)">
-                                                            <i class="fas fa-ban"></i>
-                                                        </button>
+                                                      
                                                     <?php elseif ($user['status'] === 'blocked'): ?>
                                                         <button class="btn btn-success btn-action" onclick="activateUser(<?php echo $user['id']; ?>)">
                                                             <i class="fas fa-check"></i>
@@ -456,9 +458,7 @@ while ($row = $status_result->fetch_assoc()) {
                                                     </button>
                                                     
                                                     <?php if ($user['user_type'] !== 'admin'): ?>
-                                                        <button class="btn btn-danger btn-action" onclick="deleteUser(<?php echo $user['id']; ?>)">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
+                                                     
                                                     <?php endif; ?>
                                                 </div>
                                             </td>

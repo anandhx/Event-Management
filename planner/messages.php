@@ -24,6 +24,10 @@ $stmt = $conn->prepare($sql);
 if ($stmt) { $stmt->bind_param('iii', $plannerId, $plannerId, $plannerId); $stmt->execute(); $res = $stmt->get_result(); while ($row = $res->fetch_assoc()) { $conversations[] = $row; } }
 
 $activeClientId = isset($_GET['client']) ? (int)$_GET['client'] : ( ($conversations[0]['client_id'] ?? 0) );
+// Recipient selector: all clients (recent first)
+$availableClients = [];
+$stmt = $conn->prepare("SELECT id, full_name FROM users WHERE user_type = 'client' ORDER BY full_name ASC");
+if ($stmt) { $stmt->execute(); $res = $stmt->get_result(); while ($row = $res->fetch_assoc()) { $availableClients[] = $row; } }
 $messages = [];
 if ($activeClientId) {
     $stmt = $conn->prepare("SELECT m.*, u.full_name AS sender_name FROM messages m JOIN users u ON u.id = m.sender_id WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?) ORDER BY m.created_at ASC");
@@ -85,7 +89,17 @@ if ($activeClientId) {
                                 <div class="row h-100 g-0">
                                     <div class="col-md-4">
                                         <div class="conversation-list">
-                                            <div class="p-3 border-bottom"><h5 class="fw-bold mb-0"><i class="fas fa-comments me-2"></i>Conversations</h5></div>
+                                            <div class="p-3 border-bottom">
+                                                <h5 class="fw-bold mb-2"><i class="fas fa-comments me-2"></i>Conversations</h5>
+                                                <div class="mb-2">
+                                                    <select class="form-select form-select-sm" onchange="if(this.value){ window.location='?client='+this.value }">
+                                                        <option value="">Start chat with client...</option>
+                                                        <?php foreach ($availableClients as $u): ?>
+                                                            <option value="<?php echo (int)$u['id']; ?>" <?php echo ($activeClientId == (int)$u['id'] ? 'selected' : ''); ?>><?php echo htmlspecialchars($u['full_name']); ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </div>
+                                            </div>
                                             <?php foreach ($conversations as $c): ?>
                                                 <a class="d-block p-3 border-bottom text-decoration-none <?php echo ($c['client_id'] == $activeClientId ? 'bg-light' : ''); ?>" href="?client=<?php echo (int)$c['client_id']; ?>">
                                                     <div class="d-flex align-items-center">

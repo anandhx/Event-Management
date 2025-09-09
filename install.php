@@ -89,7 +89,7 @@ try {
 	}
 
 	// Verify required tables
-	$tables = ['users','planners','event_categories','events','event_services','bookings','reviews','messages','notifications','payments','event_tasks','event_gallery'];
+	$tables = ['users','planners','event_categories','events','event_services','bookings','reviews','messages','notifications','payments','event_tasks','event_gallery','planner_portfolio_images'];
 	$missing = [];
 	foreach ($tables as $t) {
 		$stmt = $pdo->query("SHOW TABLES LIKE '" . str_replace("'","''", $t) . "'");
@@ -100,6 +100,142 @@ try {
 	} else {
 		echo '<div class="card warn">Missing tables: ' . htmlspecialchars(implode(', ', $missing)) . '</div>';
 	}
+
+	// Lightweight migrations for admin features
+	echo '<div class="card"><strong>Migrations</strong><br/>';
+	try {
+		// Ensure settings table exists for admin/settings.php
+		$settingsCheck = $pdo->query("SHOW TABLES LIKE 'settings'");
+		if ($settingsCheck->rowCount() === 0) {
+			$pdo->exec("CREATE TABLE IF NOT EXISTS settings (
+				setting_key VARCHAR(100) PRIMARY KEY,
+				setting_value TEXT NULL,
+				updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+				created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+			echo '<div class="ok">+ Created settings table</div>';
+		} else {
+			echo '<div class="muted">= settings table exists</div>';
+		}
+
+		// Seed default settings
+		$defaults = [
+			['site_name','Event Management System'],
+			['site_description','Professional event management system for planning and organizing events'],
+			['contact_email','admin@ems.com'],
+			['contact_phone','+91 00000 00000'],
+			['timezone','UTC'],
+			['smtp_host','smtp.gmail.com'],
+			['smtp_port','587'],
+			['smtp_username','noreply@ems.com'],
+			['from_email','noreply@ems.com'],
+			['email_notifications','1'],
+			['new_user_notifications','1'],
+			['event_notifications','1'],
+			['planner_notifications','1'],
+			['sms_notifications','0'],
+			['push_notifications','0'],
+			['max_file_upload_size','10'],
+			['session_timeout','3600'],
+			['enable_registration','1'],
+			['enable_guest_events','0'],
+			['maintenance_mode','0']
+		];
+		$ins = $pdo->prepare("INSERT IGNORE INTO settings (setting_key, setting_value) VALUES (?, ?)");
+		foreach ($defaults as $row) { $ins->execute($row); }
+		echo '<div class="ok">+ Seeded default settings</div>';
+
+		// Ensure password_resets table exists
+		$pwdResetCheck = $pdo->query("SHOW TABLES LIKE 'password_resets'");
+		if ($pwdResetCheck->rowCount() === 0) {
+			$pdo->exec("CREATE TABLE IF NOT EXISTS password_resets (
+				id INT AUTO_INCREMENT PRIMARY KEY,
+				user_id INT NOT NULL,
+				email VARCHAR(191) NOT NULL,
+				token VARCHAR(191) NOT NULL,
+				expires_at DATETIME NOT NULL,
+				used_at DATETIME NULL,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				INDEX idx_email (email),
+				INDEX idx_token (token),
+				CONSTRAINT fk_password_resets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+			echo '<div class="ok">+ Created password_resets table</div>';
+		} else {
+			echo '<div class="muted">= password_resets table exists</div>';
+		}
+
+		// Ensure users.email_verified column exists
+		$col = $pdo->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='" . str_replace("'","''", $dbName) . "' AND TABLE_NAME='users' AND COLUMN_NAME='email_verified'");
+		if ($col && $col->rowCount() === 0) {
+			$pdo->exec("ALTER TABLE users ADD COLUMN email_verified TINYINT(1) NOT NULL DEFAULT 0 AFTER status");
+			echo '<div class="ok">+ Added users.email_verified</div>';
+		} else {
+			echo '<div class="muted">= users.email_verified exists</div>';
+		}
+
+		// Ensure otp_verifications table exists
+		$otpCheck = $pdo->query("SHOW TABLES LIKE 'otp_verifications'");
+		if ($otpCheck->rowCount() === 0) {
+			$pdo->exec("CREATE TABLE IF NOT EXISTS otp_verifications (
+				id INT AUTO_INCREMENT PRIMARY KEY,
+				user_id INT NOT NULL,
+				email VARCHAR(191) NOT NULL,
+				otp_code VARCHAR(10) NOT NULL,
+				expires_at DATETIME NOT NULL,
+				attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+				verified_at DATETIME NULL,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				INDEX idx_otp_email (email),
+				INDEX idx_otp_user (user_id),
+				CONSTRAINT fk_otp_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+			echo '<div class="ok">+ Created otp_verifications table</div>';
+		} else {
+			echo '<div class="muted">= otp_verifications table exists</div>';
+		}
+
+		// Ensure contact_messages table exists
+		$contactCheck = $pdo->query("SHOW TABLES LIKE 'contact_messages'");
+		if ($contactCheck->rowCount() === 0) {
+			$pdo->exec("CREATE TABLE IF NOT EXISTS contact_messages (
+				id INT AUTO_INCREMENT PRIMARY KEY,
+				user_id INT NULL,
+				name VARCHAR(120) NOT NULL,
+				email VARCHAR(150) NOT NULL,
+				subject VARCHAR(200) NOT NULL,
+				message TEXT NOT NULL,
+				status ENUM('new','read','closed') DEFAULT 'new',
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				INDEX idx_cm_email (email),
+				CONSTRAINT fk_cm_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+			echo '<div class="ok">+ Created contact_messages table</div>';
+		} else {
+			echo '<div class="muted">= contact_messages table exists</div>';
+		}
+
+		// Ensure planner_portfolio_images table exists
+		$portfolioCheck = $pdo->query("SHOW TABLES LIKE 'planner_portfolio_images'");
+		if ($portfolioCheck->rowCount() === 0) {
+			$pdo->exec("CREATE TABLE IF NOT EXISTS planner_portfolio_images (
+				id INT AUTO_INCREMENT PRIMARY KEY,
+				planner_id INT NOT NULL,
+				image_path VARCHAR(255) NOT NULL,
+				caption VARCHAR(255) NULL,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				INDEX idx_ppi_planner (planner_id),
+				CONSTRAINT fk_ppi_planner FOREIGN KEY (planner_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+			echo '<div class="ok">+ Created planner_portfolio_images table</div>';
+		} else {
+			echo '<div class=\"muted\">= planner_portfolio_images table exists</div>';
+		}
+
+	} catch (Throwable $m) {
+		echo '<div class="warn">! Migration check failed: ' . htmlspecialchars($m->getMessage()) . '</div>';
+	}
+	echo '</div>';
 
 } catch (Throwable $e) {
 	echo '<div class="card err">Error: ' . htmlspecialchars($e->getMessage()) . '</div>';

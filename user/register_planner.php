@@ -122,7 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
                         <?php endif; ?>
 
-                        <form method="POST" action="">
+                        <form method="POST" action="../register_backend.php">
+                            <input type="hidden" name="user_type" value="planner">
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">

@@ -278,7 +278,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             </ul>
                         </div>
                         
-                        <form method="POST" action="" id="registrationForm">
+                        <form method="POST" action="../register_backend.php" id="registrationForm">
+                            <input type="hidden" name="user_type" value="client">
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">

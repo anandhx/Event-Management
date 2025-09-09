@@ -180,7 +180,7 @@ $stats['cancelled_events'] = $result->fetch_assoc()['count'];
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 px-0">
+            <div class="px-0">
                 <div class="admin-sidebar p-4" id="adminSidebar">
                     <div class="text-center mb-5">
                         <div class="mb-3">
@@ -211,6 +211,10 @@ $stats['cancelled_events'] = $result->fetch_assoc()['count'];
                             <i class="fas fa-chart-bar"></i>
                             <span>Analytics</span>
                         </a>
+                        <a class="nav-link" href="contact_messages.php">
+                            <i class="fas fa-envelope-open-text"></i>
+                            <span>Contact Messages</span>
+                        </a>
                         <a class="nav-link" href="settings.php">
                             <i class="fas fa-cog"></i>
                             <span>Settings</span>
@@ -224,7 +228,7 @@ $stats['cancelled_events'] = $result->fetch_assoc()['count'];
             </div>
             
             <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 px-0">
+            <div class="col-12 px-0">
                 <div class="main-content">
                     <!-- Header -->
                     <div class="welcome-section">
@@ -351,7 +355,6 @@ $stats['cancelled_events'] = $result->fetch_assoc()['count'];
                                         <th>Date & Time</th>
                                         <th>Status</th>
                                         <th>Budget</th>
-                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -397,15 +400,7 @@ $stats['cancelled_events'] = $result->fetch_assoc()['count'];
                                             <td>$<?php echo number_format($event['budget']); ?></td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <button class="btn btn-outline-info" onclick="viewEventDetails(<?php echo $event['id']; ?>)">
-                                                        <i class="fas fa-eye"></i>
-                                                    </button>
-                                                    <button class="btn btn-outline-warning" onclick="editEvent(<?php echo $event['id']; ?>)">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button class="btn btn-outline-danger" onclick="deleteEvent(<?php echo $event['id']; ?>)">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
+                                                  
                                                 </div>
                                             </td>
                                         </tr>

@@ -39,14 +39,15 @@
                         </div>
                         <div class="position-absolute top-0 start-100 translate-middle">
                             <div class="bg-gradient-secondary rounded-circle p-3 shadow-custom">
-                                <i class="fas fa-heart fa-2x text-white"></i>
+                                <img src="assets/img/new/rings%20png.png" alt="Rings" style="width:40px; height:40px; object-fit:contain;" />
                             </div>
                         </div>
                         <div class="position-absolute bottom-0 end-0">
                             <div class="bg-gradient-accent rounded-circle p-3 shadow-custom">
-                                <i class="fas fa-star fa-2x text-white"></i>
+                                <img src="assets/img/new/baloons%20png%20.png" alt="Balloons" style="width:40px; height:40px; object-fit:contain;" />
                             </div>
                         </div>
+                     
                     </div>
                 </div>
             </div>
@@ -206,8 +207,9 @@
         <div class="row g-4">
             <div class="col-lg-3 col-md-6">
                 <div class="custom-card text-center h-100">
-                    <div class="card-image mb-3">
-                        <img src="assets/img/event-planning.jpg" alt="Event Planning" class="img-fluid rounded" style="height: 150px; width: 100%; object-fit: cover;">
+               
+                <div class="card-image mb-3">
+                        <img src="assets/img/new/rings%20png.png" alt="Wedding Events" class="img-fluid rounded" style="height: 150px; width: 100%; object-fit: cover;">
                     </div>
                     <h4 class="mb-3">Event Planning</h4>
                     <p class="text-muted mb-4">Comprehensive event planning and coordination services for all occasions.</p>
@@ -218,7 +220,7 @@
             <div class="col-lg-3 col-md-6">
                 <div class="custom-card text-center h-100">
                     <div class="card-image mb-3">
-                        <img src="assets/img/wedding-event.jpg" alt="Wedding Events" class="img-fluid rounded" style="height: 150px; width: 100%; object-fit: cover;">
+                        <img src="assets/img/new/rings%20png.png" alt="Wedding Events" class="img-fluid rounded" style="height: 150px; width: 100%; object-fit: cover;">
                     </div>
                     <h4 class="mb-3">Wedding Events</h4>
                     <p class="text-muted mb-4">Make your special day unforgettable with our wedding planning services.</p>
@@ -229,7 +231,7 @@
             <div class="col-lg-3 col-md-6">
                 <div class="custom-card text-center h-100">
                     <div class="card-image mb-3">
-                        <img src="assets/img/corporate-event.jpg" alt="Corporate Events" class="img-fluid rounded" style="height: 150px; width: 100%; object-fit: cover;">
+                        <img src="assets/img/new/scrren%20img.png" alt="Corporate Events" class="img-fluid rounded" style="height: 150px; width: 100%; object-fit: cover;">
                     </div>
                     <h4 class="mb-3">Corporate Events</h4>
                     <p class="text-muted mb-4">Professional corporate event planning for conferences and meetings.</p>
@@ -251,7 +253,7 @@
             <div class="col-lg-3 col-md-6">
                 <div class="custom-card text-center h-100">
                     <div class="card-image mb-3">
-                        <img src="assets/img/entertainment.jpg" alt="Entertainment" class="img-fluid rounded" style="height: 150px; width: 100%; object-fit: cover;">
+                        <img src="assets/img/new/baloons%20png%20.png" alt="Entertainment" class="img-fluid rounded" style="height: 150px; width: 100%; object-fit: cover;">
                     </div>
                     <h4 class="mb-3">Entertainment</h4>
                     <p class="text-muted mb-4">Live bands, DJs, and entertainment services for your events.</p>
@@ -293,7 +295,7 @@
         </div>
         <div class="owl-carousel blog-carousel wow fadeInUp" data-wow-delay=".5s">
             <div class="blog-item">
-                <img src="assets/img/blog-1.jpg" class="img-fluid w-100 rounded-top" alt="Event Planning Trends">
+            <img src="assets/img/blog-2.jpg" class="img-fluid w-100 rounded-top" alt="Wedding Planning Tips">
                 <div class="rounded-bottom bg-light">
                     <div class="d-flex justify-content-between p-4 pb-2">
                         <span class="pe-2 text-dark"><i class="fa fa-user me-2"></i>By Admin</span>
@@ -344,7 +346,7 @@
                 </div>
             </div>
             <div class="blog-item">
-                <img src="assets/img/blog-1.jpg" class="img-fluid w-100 rounded-top" alt="Event Technology">
+            <img src="assets/img/blog-3.jpg" class="img-fluid w-100 rounded-top" alt="Corporate Event Strategies">
                 <div class="rounded-bottom bg-light">
                     <div class="d-flex justify-content-between p-4 pb-2">
                         <span class="pe-2 text-dark"><i class="fa fa-user me-2"></i>By Admin</span>

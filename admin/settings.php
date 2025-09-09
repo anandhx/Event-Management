@@ -20,10 +20,10 @@ function getSetting($conn, $key, $default = '') {
     return $default;
 }
 
-// Function to update setting value
+// Function to upsert setting value
 function updateSetting($conn, $key, $value) {
-    $stmt = $conn->prepare("UPDATE settings SET setting_value = ?, updated_at = CURRENT_TIMESTAMP WHERE setting_key = ?");
-    $stmt->bind_param("ss", $value, $key);
+    $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP");
+    $stmt->bind_param("ss", $key, $value);
     return $stmt->execute();
 }
 
@@ -125,18 +125,9 @@ $db_stats['total_bookings'] = $result->fetch_assoc()['count'];
 $result = $conn->query("SELECT COUNT(*) as count FROM reviews");
 $db_stats['total_reviews'] = $result->fetch_assoc()['count'];
 
-// Get recent system logs (if available)
+// Recent logs (no dummy data)
 $recent_logs = [];
-// This would typically query a logs table
-// For now, we'll create sample data
-$recent_logs = [
-    ['timestamp' => date('Y-m-d H:i:s'), 'level' => 'INFO', 'message' => 'System backup completed successfully'],
-    ['timestamp' => date('Y-m-d H:i:s', strtotime('-1 hour')), 'level' => 'INFO', 'message' => 'New user registration: john_doe'],
-    ['timestamp' => date('Y-m-d H:i:s', strtotime('-2 hours')), 'level' => 'WARNING', 'message' => 'High memory usage detected'],
-    ['timestamp' => date('Y-m-d H:i:s', strtotime('-3 hours')), 'level' => 'INFO', 'message' => 'Event status updated: Wedding Event #123']
-];
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -155,7 +146,7 @@ $recent_logs = [
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 px-0">
+            <div class="px-0">
                 <div class="admin-sidebar p-4" id="adminSidebar">
                     <div class="text-center mb-5">
                         <div class="mb-3">
@@ -186,6 +177,10 @@ $recent_logs = [
                             <i class="fas fa-chart-bar"></i>
                             <span>Analytics</span>
                         </a>
+                        <a class="nav-link" href="contact_messages.php">
+                            <i class="fas fa-envelope-open-text"></i>
+                            <span>Contact Messages</span>
+                        </a>
                         <a class="nav-link active" href="settings.php">
                             <i class="fas fa-cog"></i>
                             <span>Settings</span>
@@ -199,7 +194,7 @@ $recent_logs = [
             </div>
             
             <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 px-0">
+            <div class="col-12 px-0">
                 <div class="main-content">
                     <!-- Header -->
                     <div class="welcome-section">
@@ -521,88 +516,6 @@ $recent_logs = [
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-
-                            <!-- System Settings -->
-                            <div class="row">
-                                <div class="col-md-6 mb-4">
-                                    <div class="card">
-                                        <div class="card-header">
-                                            <h5><i class="fas fa-cog me-2"></i>System Configuration</h5>
-                                        </div>
-                                        <div class="card-body">
-                                            <form method="POST">
-                                                <input type="hidden" name="action" value="update_system_config">
-                                                
-                                                <div class="mb-3">
-                                                    <label for="max_file_upload_size" class="form-label">Max File Upload Size (MB)</label>
-                                                    <input type="number" class="form-control" id="max_file_upload_size" name="max_file_upload_size" value="<?php echo htmlspecialchars($current_settings['max_file_upload_size'] ?? '10'); ?>" min="1" max="100">
-                                                </div>
-                                                
-                                                <div class="mb-3">
-                                                    <label for="session_timeout" class="form-label">Session Timeout (seconds)</label>
-                                                    <input type="number" class="form-control" id="session_timeout" name="session_timeout" value="<?php echo htmlspecialchars($current_settings['session_timeout'] ?? '3600'); ?>" min="300" max="86400">
-                                                </div>
-                                                
-                                                <div class="mb-3">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="enable_registration" name="enable_registration" <?php echo ($current_settings['enable_registration'] ?? '1') === '1' ? 'checked' : ''; ?>>
-                                                        <label class="form-check-label" for="enable_registration">
-                                                            Allow new user registrations
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="mb-3">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="enable_guest_events" name="enable_guest_events" <?php echo ($current_settings['enable_guest_events'] ?? '0') === '1' ? 'checked' : ''; ?>>
-                                                        <label class="form-check-label" for="enable_guest_events">
-                                                            Allow events to be viewed without login
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="mb-3">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="maintenance_mode" name="maintenance_mode" <?php echo ($current_settings['maintenance_mode'] ?? '0') === '1' ? 'checked' : ''; ?>>
-                                                        <label class="form-check-label" for="maintenance_mode">
-                                                            Enable maintenance mode
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                                
-                                                <button type="submit" class="btn btn-primary">
-                                                    <i class="fas fa-save me-2"></i>Save System Settings
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- System Actions -->
-                                <div class="col-md-6 mb-4">
-                                    <div class="card">
-                                        <div class="card-header">
-                                            <h5><i class="fas fa-tools me-2"></i>System Actions</h5>
-                                        </div>
-                                        <div class="card-body">
-                                            <form method="POST" class="mb-3">
-                                                <input type="hidden" name="action" value="backup_database">
-                                                <button type="submit" class="btn btn-outline-primary w-100 mb-2">
-                                                    <i class="fas fa-download me-2"></i>Backup Database
-                                                </button>
-                                            </form>
-                                            
-                                            <button type="button" class="btn btn-outline-warning w-100 mb-2" onclick="clearCache()">
-                                                <i class="fas fa-broom me-2"></i>Clear Cache
-                                            </button>
-                                            
-                                            <button type="button" class="btn btn-outline-info w-100 mb-2" onclick="generateSystemReport()">
-                                                <i class="fas fa-file-alt me-2"></i>Generate System Report
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
 
                                 <!-- Recent Logs -->
                                 <div class="col-md-6 mb-4">
@@ -611,6 +524,9 @@ $recent_logs = [
                                             <h5><i class="fas fa-list me-2"></i>Recent System Logs</h5>
                                         </div>
                                         <div class="card-body">
+                                            <?php if (empty($recent_logs)): ?>
+                                                <div class="text-muted">No logs available.</div>
+                                            <?php else: ?>
                                             <div class="system-logs">
                                                 <?php foreach ($recent_logs as $log): ?>
                                                 <div class="log-entry mb-2">
@@ -626,6 +542,7 @@ $recent_logs = [
                                                 </div>
                                                 <?php endforeach; ?>
                                             </div>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>
@@ -663,75 +580,6 @@ $recent_logs = [
                 alert('Maintenance mode toggled successfully!');
             }
         }
-
-        // Initialize Bootstrap tabs
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, initializing tabs...');
-            
-            // Get all tab buttons
-            const tabButtons = document.querySelectorAll('[data-bs-toggle="tab"]');
-            console.log('Found tab buttons:', tabButtons.length);
-            
-            // Add click event listeners to each tab button
-            tabButtons.forEach((button, index) => {
-                console.log(`Setting up tab ${index}:`, button.textContent.trim());
-                
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    console.log('Tab clicked:', this.textContent.trim());
-                    
-                    // Get the target tab content
-                    const targetId = this.getAttribute('data-bs-target');
-                    const targetContent = document.querySelector(targetId);
-                    console.log('Target content:', targetId, targetContent);
-                    
-                    if (targetContent) {
-                        // Hide all tab content
-                        document.querySelectorAll('.tab-pane').forEach(content => {
-                            content.style.display = 'none';
-                            content.classList.remove('show', 'active');
-                        });
-                        
-                        // Remove active class from all tabs
-                        document.querySelectorAll('.nav-link').forEach(tab => {
-                            tab.classList.remove('active');
-                        });
-                        
-                        // Show target content and activate tab
-                        targetContent.style.display = 'block';
-                        targetContent.classList.add('show', 'active');
-                        this.classList.add('active');
-                        
-                        console.log('Tab switched successfully to:', targetId);
-                    }
-                });
-            });
-            
-            // Test tab switching programmatically
-            console.log('Testing tab functionality...');
-            const emailTab = document.getElementById('email-tab');
-            if (emailTab) {
-                console.log('Email tab found, testing click...');
-                // emailTab.click(); // Uncomment to test
-            }
-            
-            // Add a simple test button to manually test tabs
-            const testButton = document.createElement('button');
-            testButton.textContent = 'Test Email Tab';
-            testButton.className = 'btn btn-sm btn-outline-info mb-3';
-            testButton.onclick = function() {
-                const emailTab = document.getElementById('email-tab');
-                if (emailTab) {
-                    emailTab.click();
-                }
-            };
-            
-            // Insert test button after the welcome section
-            const welcomeSection = document.querySelector('.welcome-section');
-            if (welcomeSection) {
-                welcomeSection.appendChild(testButton);
-            }
-        });
 
         // Auto-hide sidebar on mobile when clicking outside
         document.addEventListener('click', function(e) {

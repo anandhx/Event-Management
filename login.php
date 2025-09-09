@@ -41,41 +41,59 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $user = authenticate($conn, $username, $password);
         
         if ($user) {
-            // For planners, enforce approval before logging in
-            if ($user['user_type'] == 'planner') {
-                $planner_info = getPlannerInfo($conn, $user['id']);
-                $status = $planner_info['approval_status'] ?? 'pending';
-                if ($status !== 'approved') {
-                    if ($status === 'rejected') {
-                        $error = 'Your planner account has been rejected. Please contact support.';
-                    } else {
-                        $error = 'Your planner account is pending approval.';
-                    }
+            // Ensure email verified
+            $emailVerifiedOk = true;
+            $colCheck = $conn->query("SHOW COLUMNS FROM users LIKE 'email_verified'");
+            if ($colCheck && $colCheck->num_rows > 0) {
+                $verStmt = $conn->prepare("SELECT email_verified FROM users WHERE id = ?");
+                if ($verStmt) {
+                    $verStmt->bind_param('i', $user['id']);
+                    $verStmt->execute();
+                    $verRes = $verStmt->get_result()->fetch_assoc();
+                    $emailVerifiedOk = ((int)($verRes['email_verified'] ?? 0) === 1);
+                } else {
+                    $emailVerifiedOk = true; // fail open to avoid blocking login due to schema mismatch
                 }
             }
-
-            if (empty($error)) {
-                // Set session variables
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['full_name'] = $user['full_name'];
-                $_SESSION['user_type'] = $user['user_type'];
-
-                // Additional info for planners
-                if (isset($planner_info) && $planner_info) {
-                    $_SESSION['company_name'] = $planner_info['company_name'] ?? null;
-                    $_SESSION['planner_id'] = $planner_info['id'] ?? null;
+            if (!$emailVerifiedOk) {
+                $error = 'Please verify your email before logging in.';
+            } else {
+                // For planners, enforce approval before logging in
+                if ($user['user_type'] == 'planner') {
+                    $planner_info = getPlannerInfo($conn, $user['id']);
+                    $status = $planner_info['approval_status'] ?? 'pending';
+                    if ($status !== 'approved') {
+                        if ($status === 'rejected') {
+                            $error = 'Your planner account has been rejected. Please contact support.';
+                        } else {
+                            $error = 'Your planner account is pending approval.';
+                        }
+                    }
                 }
 
-                // Redirect based on user type
-                if ($user['user_type'] == 'admin') {
-                    header('Location: admin/admin_index.php');
-                } elseif ($user['user_type'] == 'planner') {
-                    header('Location: planner/planner_index.php');
-                } else {
-                    header('Location: user/user_index.php');
+                if (empty($error)) {
+                    // Set session variables
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['full_name'] = $user['full_name'];
+                    $_SESSION['user_type'] = $user['user_type'];
+
+                    // Additional info for planners
+                    if (isset($planner_info) && $planner_info) {
+                        $_SESSION['company_name'] = $planner_info['company_name'] ?? null;
+                        $_SESSION['planner_id'] = $planner_info['id'] ?? null;
+                    }
+
+                    // Redirect based on user type
+                    if ($user['user_type'] == 'admin') {
+                        header('Location: admin/admin_index.php');
+                    } elseif ($user['user_type'] == 'planner') {
+                        header('Location: planner/planner_index.php');
+                    } else {
+                        header('Location: user/user_index.php');
+                    }
+                    exit();
                 }
-                exit();
             }
         } else {
             $error = 'Invalid username or password.';
@@ -139,12 +157,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }
-        .demo-credentials {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 20px;
-        }
     </style>
 </head>
 <body>
@@ -197,24 +209,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         </form>
                         
                         <div class="text-center mt-3">
-                            <p>Don't have an account? <a href="user/register.php" class="text-decoration-none">Register here</a></p>
+                            <a href="forgot_password.php" class="text-decoration-none">Forgot password?</a>
                         </div>
                         
-                        <div class="demo-credentials">
-                            <h6 class="text-muted mb-2"><i class="fas fa-info-circle me-2"></i>Demo Credentials:</h6>
-                            <div class="row">
-                                <div class="col-6">
-                                    <small><strong>Admin:</strong><br>admin / admin123</small>
-                                </div>
-                                <div class="col-6">
-                                    <small><strong>Planner:</strong><br>planner1 / admin123</small>
-                                </div>
-                            </div>
-                            <div class="row mt-2">
-                                <div class="col-6">
-                                    <small><strong>Client:</strong><br>client1 / admin123</small>
-                                </div>
-                            </div>
+                        <div class="text-center mt-3">
+                            <p>Don't have an account? <a href="user/register.php" class="text-decoration-none">Register here</a></p>
                         </div>
                     </div>
                 </div>

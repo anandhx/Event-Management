@@ -229,7 +229,7 @@ $messages_count = getUnreadMessagesCount($conn, $_SESSION['user_id']);
                         <a class="nav-link" href="messages.php">
                             <i class="fas fa-envelope me-2"></i>Messages
                             <?php if ($messages_count > 0): ?>
-                                <span class="badge bg-danger ms-2"><?php echo $messages_count; ?></span>
+                                <span class="badge bg-danger ms-2"></span>
                             <?php endif; ?>
                         </a>
                         <a class="nav-link" href="notifications.php">

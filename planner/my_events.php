@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'planner') {
 $plannerId = (int)$_SESSION['user_id'];
 $events = [];
 $stmt = $conn->prepare("SELECT e.id, e.title, e.event_date, e.event_time, e.venue, e.status, e.budget,
-                               u.full_name AS client_name
+                               u.full_name AS client_name, e.client_id
                         FROM events e
                         JOIN users u ON e.client_id = u.id
                         WHERE e.planner_id = ?
@@ -74,7 +74,22 @@ if ($stmt) {
                                         <small class="text-muted d-block"><i class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($e['venue'] ?? 'TBD'); ?></small>
                                         <small class="text-muted d-block"><i class="fas fa-dollar-sign me-1"></i>Budget: $<?php echo number_format($e['budget']); ?></small>
                                     </div>
-                                    <span class="badge bg-<?php echo $e['status'] == 'confirmed' ? 'success' : ($e['status'] == 'pending' ? 'warning' : ($e['status'] == 'completed' ? 'info' : 'secondary')); ?>"><?php echo ucfirst(str_replace('_',' ', $e['status'])); ?></span>
+                                    <div class="text-end">
+                                        <span class="badge bg-<?php echo $e['status'] == 'confirmed' ? 'success' : ($e['status'] == 'pending' ? 'warning' : ($e['status'] == 'completed' ? 'info' : ($e['status']=='in_progress' ? 'primary' : 'secondary'))); ?>"><?php echo ucfirst(str_replace('_',' ', $e['status'])); ?></span>
+                                        <div class="mt-2 d-flex gap-2 justify-content-end">
+                                            <?php if ($e['status'] === 'pending'): ?>
+                                                <button class="btn btn-sm btn-success" onclick="changeEventStatus(<?php echo (int)$e['id']; ?>,'confirmed',<?php echo (int)$e['client_id']; ?>)"><i class="fas fa-check me-1"></i>Accept</button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="changeEventStatus(<?php echo (int)$e['id']; ?>,'cancelled',<?php echo (int)$e['client_id']; ?>)"><i class="fas fa-times me-1"></i>Reject</button>
+                                            <?php elseif ($e['status'] === 'confirmed'): ?>
+                                                <button class="btn btn-sm btn-primary" onclick="changeEventStatus(<?php echo (int)$e['id']; ?>,'in_progress',<?php echo (int)$e['client_id']; ?>)"><i class="fas fa-play me-1"></i>Start</button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="changeEventStatus(<?php echo (int)$e['id']; ?>,'cancelled',<?php echo (int)$e['client_id']; ?>)"><i class="fas fa-ban me-1"></i>Cancel</button>
+                                            <?php elseif ($e['status'] === 'in_progress'): ?>
+                                                <button class="btn btn-sm btn-success" onclick="changeEventStatus(<?php echo (int)$e['id']; ?>,'completed',<?php echo (int)$e['client_id']; ?>)"><i class="fas fa-flag-checkered me-1"></i>Complete</button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="changeEventStatus(<?php echo (int)$e['id']; ?>,'cancelled',<?php echo (int)$e['client_id']; ?>)"><i class="fas fa-ban me-1"></i>Cancel</button>
+                                            <?php endif; ?>
+                                            <a class="btn btn-sm btn-outline-secondary" href="messages.php?client=<?php echo (int)$e['client_id']; ?>"><i class="fas fa-envelope me-1"></i>Message</a>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -84,5 +99,15 @@ if ($stmt) {
         </div>
     </div>
     <script src="../assets/js/bootstrap.bundle.min.js"></script>
+    <script>
+    async function changeEventStatus(eventId, status, clientId) {
+        if (!eventId || !status) return;
+        try {
+            const res = await fetch('update_event_status.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_id: eventId, status: status, client_id: clientId }) });
+            const data = await res.json();
+            if (data.success) { location.reload(); } else { alert(data.message || 'Failed to update status'); }
+        } catch (e) { alert('Network error'); }
+    }
+    </script>
 </body>
 </html>

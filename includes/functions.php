@@ -5,8 +5,8 @@ function isLoggedIn() {
 
 function authenticate($conn, $username, $password) {
     // Real authentication against database with hashed passwords
-    $stmt = $conn->prepare("SELECT id, username, password, user_type, full_name FROM users WHERE username = ? AND status = 'active'");
-    $stmt->bind_param("s", $username);
+    $stmt = $conn->prepare("SELECT id, username, email, password, user_type, full_name FROM users WHERE (username = ? OR email = ?) AND status = 'active'");
+    $stmt->bind_param("ss", $username, $username);
     $stmt->execute();
     $result = $stmt->get_result();
     

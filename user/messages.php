@@ -1,38 +1,39 @@
 <?php
 session_start();
+require_once '../includes/db.php';
 
-// Dummy user data for showcase
-if (!isset($_SESSION['user_id'])) {
-    $_SESSION['user_id'] = 1;
-    $_SESSION['username'] = 'john_doe';
-    $_SESSION['full_name'] = 'John Doe';
-    $_SESSION['user_type'] = 'client';
-}
-
-// Dummy conversations
-$conversations = [
-    [ 'id' => 1, 'planner' => [ 'name' => 'Jane Smith','company' => 'Elegant Events Co.','image' => '../assets/img/team-1.jpg','online' => true ], 'event' => 'Sarah & Mike Wedding','last_message' => 'Hi! I\'ve confirmed the venue decoration details. Everything looks perfect for your theme.','time' => '2 hours ago','unread' => 1 ],
-];
-
-// Dummy messages for active conversation
-$active_conversation = [
-    'id' => 1,
-    'planner' => [ 'name' => 'Jane Smith','company' => 'Elegant Events Co.','image' => '../assets/img/team-1.jpg','online' => true ],
-    'event' => 'Sarah & Mike Wedding',
-    'messages' => [
-        [ 'sender' => 'planner','message' => 'Hi John! I\'ve confirmed the venue decoration details. Everything looks perfect for your theme.','time' => '2 hours ago','status' => 'read' ],
-        [ 'sender' => 'client','message' => 'Great! Can you also confirm the photographer will be there by 1 PM?','time' => '1 hour ago','status' => 'read' ],
-    ]
-];
-
-// Handle message submission
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['message'])) {
-    $_SESSION['success_message'] = "Message sent successfully!";
-    header("Location: messages.php?conversation=" . $active_conversation['id']);
+if (!isset($_SESSION['user_id']) || ($_SESSION['user_type'] ?? '') !== 'client') {
+    header('Location: ../login.php');
     exit();
 }
-?>
 
+$clientId = (int)$_SESSION['user_id'];
+
+// Conversations with planners (distinct other user ids)
+$conversations = [];
+$sql = "SELECT u.id AS planner_id, u.full_name AS planner_name,
+               MAX(m.created_at) AS last_time,
+               SUBSTRING_INDEX(GROUP_CONCAT(m.message ORDER BY m.created_at DESC SEPARATOR '\n'), '\n', 1) AS last_message
+        FROM messages m
+        JOIN users u ON (CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END) = u.id
+        WHERE (m.sender_id = ? OR m.receiver_id = ?) AND u.user_type = 'planner'
+        GROUP BY u.id, u.full_name
+        ORDER BY last_time DESC
+        LIMIT 20";
+$stmt = $conn->prepare($sql);
+if ($stmt) { $stmt->bind_param('iii', $clientId, $clientId, $clientId); $stmt->execute(); $res = $stmt->get_result(); while ($row = $res->fetch_assoc()) { $conversations[] = $row; } }
+
+$activePlannerId = isset($_GET['planner']) ? (int)$_GET['planner'] : ( ($conversations[0]['planner_id'] ?? 0) );
+// Recipient selector: all approved planners (alphabetical)
+$availablePlanners = [];
+$stmt = $conn->prepare("SELECT u.id, u.full_name FROM users u JOIN planners p ON p.user_id = u.id WHERE u.user_type = 'planner' AND p.approval_status = 'approved' ORDER BY u.full_name ASC");
+if ($stmt) { $stmt->execute(); $res = $stmt->get_result(); while ($row = $res->fetch_assoc()) { $availablePlanners[] = $row; } }
+$messages = [];
+if ($activePlannerId) {
+    $stmt = $conn->prepare("SELECT m.*, u.full_name AS sender_name FROM messages m JOIN users u ON u.id = m.sender_id WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?) ORDER BY m.created_at ASC");
+    if ($stmt) { $stmt->bind_param('iiii', $clientId, $activePlannerId, $activePlannerId, $clientId); $stmt->execute(); $res = $stmt->get_result(); while ($row = $res->fetch_assoc()) { $messages[] = $row; } }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -91,37 +92,48 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['message'])) {
                                 <div class="row h-100 g-0">
                                     <div class="col-md-4">
                                         <div class="conversation-list">
-                                            <div class="p-3 border-bottom"><h5 class="fw-bold mb-0"><i class="fas fa-comments me-2"></i>Messages</h5></div>
-                                            <?php foreach ($conversations as $conversation): ?>
-                                                <div class="conversation-item p-3 border-bottom <?php echo $conversation['id'] == $active_conversation['id'] ? 'bg-light' : ''; ?>">
+                                            <div class="p-3 border-bottom">
+                                                <h5 class="fw-bold mb-2"><i class="fas fa-comments me-2"></i>Messages</h5>
+                                                <div class="mb-2">
+                                                    <select class="form-select form-select-sm" onchange="if(this.value){ window.location='?planner='+this.value }">
+                                                        <option value="">Start chat with planner...</option>
+                                                        <?php foreach ($availablePlanners as $u): ?>
+                                                            <option value="<?php echo (int)$u['id']; ?>" <?php echo ($activePlannerId == (int)$u['id'] ? 'selected' : ''); ?>><?php echo htmlspecialchars($u['full_name']); ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <?php foreach ($conversations as $c): ?>
+                                                <a class="d-block p-3 border-bottom text-decoration-none <?php echo ($c['planner_id'] == $activePlannerId ? 'bg-light' : ''); ?>" href="?planner=<?php echo (int)$c['planner_id']; ?>">
                                                     <div class="d-flex align-items-center">
-                                                        <img src="<?php echo $conversation['planner']['image'] ?? '../assets/img/team-1.jpg'; ?>" class="planner-avatar me-3" alt="">
+                                                        <img src="../assets/img/team-1.jpg" class="planner-avatar me-3" alt="">
                                                         <div class="flex-grow-1">
-                                                            <h6 class="fw-bold mb-1"><?php echo $conversation['planner']['name']; ?></h6>
-                                                            <p class="text-muted small mb-0"><?php echo $conversation['event']; ?></p>
+                                                            <h6 class="fw-bold mb-1"><?php echo htmlspecialchars($c['planner_name']); ?></h6>
+                                                            <small class="text-muted"><?php echo htmlspecialchars(mb_strimwidth($c['last_message'] ?? '', 0, 48, '...')); ?></small>
                                                         </div>
                                                     </div>
-                                                </div>
+                                                </a>
                                             <?php endforeach; ?>
                                         </div>
                                     </div>
                                     <div class="col-md-8">
                                         <div class="chat-area">
                                             <div class="chat-header">
-                                                <h6 class="mb-0"><?php echo $active_conversation['planner']['name']; ?> · <small class="text-muted"><?php echo $active_conversation['planner']['company']; ?></small></h6>
+                                                <h6 class="mb-0">Chat with <?php echo htmlspecialchars(($conversations[array_search($activePlannerId, array_column($conversations,'planner_id'))]['planner_name'] ?? 'Planner')); ?></h6>
                                             </div>
                                             <div class="chat-messages">
-                                                <?php foreach ($active_conversation['messages'] as $message): ?>
-                                                    <div class="message-bubble <?php echo $message['sender']; ?>">
+                                                <?php foreach ($messages as $m): $self = $m['sender_id'] == $clientId; ?>
+                                                    <div class="message-bubble <?php echo $self ? 'client' : 'planner'; ?>">
                                                         <div class="message-content">
-                                                            <p class="mb-1"><?php echo $message['message']; ?></p>
-                                                            <small class="text-muted"><?php echo $message['time']; ?></small>
+                                                            <p class="mb-1"><?php echo htmlspecialchars($m['message']); ?></p>
+                                                            <small class="text-muted"><?php echo htmlspecialchars($m['created_at']); ?></small>
                                                         </div>
                                                     </div>
                                                 <?php endforeach; ?>
                                             </div>
                                             <div class="chat-input">
-                                                <form method="POST" class="d-flex gap-2">
+                                                <form action="send_message.php" method="POST" class="d-flex gap-2">
+                                                    <input type="hidden" name="receiver_id" value="<?php echo (int)$activePlannerId; ?>">
                                                     <input type="text" class="form-control" name="message" placeholder="Type your message..." required>
                                                     <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-1"></i>Send</button>
                                                 </form>
