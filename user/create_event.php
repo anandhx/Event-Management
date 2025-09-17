@@ -125,6 +125,15 @@ $selected_planner_id = isset($_GET['planner_id']) ? (int)$_GET['planner_id'] : n
         .planner-card:hover { border-color:#667eea; transform: translateY(-2px); box-shadow:0 5px 15px rgba(0,0,0,.1); }
         .planner-card.selected { border-color:#667eea; background: rgba(102,126,234,.1); }
         .main-content { background:#f8f9fa; min-height:100vh; }
+        
+        /* Map Modal Styles */
+        #mapModal .modal-dialog { max-width: 800px; }
+        #mapModal .modal-content { border-radius: 15px; }
+        #mapModal .modal-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px 15px 0 0; }
+        #mapModal .modal-body { padding: 25px; }
+        #mapModal .modal-footer { border-top: 1px solid #e9ecef; padding: 20px 25px; }
+        #map { box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .input-group .btn { border-radius: 0 10px 10px 0; }
     </style>
 </head>
 <body>
@@ -220,7 +229,12 @@ $selected_planner_id = isset($_GET['planner_id']) ? (int)$_GET['planner_id'] : n
                                             <div class="col-md-6">
                                                 <div class="mb-3">
                                                     <label for="venue" class="form-label">Venue</label>
-                                                    <input type="text" class="form-control" id="venue" name="venue" placeholder="Enter venue or leave blank for now" value="<?php echo htmlspecialchars($venue ?? ''); ?>">
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="venue" name="venue" placeholder="Enter venue or leave blank for now" value="<?php echo htmlspecialchars($venue ?? ''); ?>">
+                                                        <button type="button" class="btn btn-outline-primary" onclick="openMapModal()" id="mapButton">
+                                                            <i class="fas fa-map-marker-alt me-1"></i>Choose from Map
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
@@ -295,8 +309,245 @@ $selected_planner_id = isset($_GET['planner_id']) ? (int)$_GET['planner_id'] : n
         </div>
     </div>
 
-    <script src="../assets/js/bootstrap.bundle.min.js"></script>
+    <!-- Map Selection Modal -->
+    <div class="modal fade" id="mapModal" tabindex="-1" aria-labelledby="mapModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="mapModalLabel">
+                        <i class="fas fa-map-marker-alt me-2"></i>Select Venue Location
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="venueName" class="form-label">Venue Name *</label>
+                        <input type="text" class="form-control" id="venueName" placeholder="Enter venue name" required>
+                        <small class="form-text text-muted">Click on the map to select a location, then enter the venue name. The address will be auto-filled but you can edit it.</small>
+                    </div>
+                    <div id="map" style="height: 400px; width: 100%; border-radius: 8px; border: 1px solid #dee2e6;"></div>
+                    <div class="mt-3">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Instructions:</strong> Click anywhere on the map to select a location. The address will be automatically filled, but you must enter a venue name.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="selectLocation()">
+                        <i class="fas fa-check me-1"></i>Select This Location
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Google Maps API -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD3MPnSnyWwNmpnVEFkaddVvy_GWtxSejs&callback=initMap&loading=async"></script>
+    
+    <!-- Bootstrap JS from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Global variables for map functionality
+        let map;
+        let marker;
+        let selectedLocation = null;
+        let geocoder;
+
+        // Initialize map when Google Maps API loads
+        function initMap() {
+            console.log('Initializing map...');
+            
+            const mapElement = document.getElementById("map");
+            if (!mapElement) {
+                console.error('Map element not found');
+                return;
+            }
+            
+            // Default center - Kerala, Kottayam
+            const defaultCenter = { lat: 9.5916, lng: 76.5222 }; // Kottayam, Kerala
+            
+            try {
+                map = new google.maps.Map(mapElement, {
+                    zoom: 15,
+                    center: defaultCenter,
+                    mapTypeControl: true,
+                    streetViewControl: true,
+                    fullscreenControl: true
+                });
+                
+                geocoder = new google.maps.Geocoder();
+                
+                // Add click listener to map
+                map.addListener("click", (event) => {
+                    placeMarker(event.latLng);
+                });
+                
+                console.log('Map initialized successfully');
+            } catch (error) {
+                console.error('Error initializing map:', error);
+            }
+        }
+
+        // Place marker on map click
+        function placeMarker(location) {
+            if (marker) {
+                marker.setMap(null);
+            }
+            
+            marker = new google.maps.Marker({
+                position: location,
+                map: map,
+                title: "Selected Location",
+                animation: google.maps.Animation.DROP
+            });
+            
+            selectedLocation = {
+                lat: location.lat(),
+                lng: location.lng()
+            };
+            
+            // Show loading message
+            document.getElementById("venueName").value = "Loading address...";
+            
+            // Try to get address name using reverse geocoding
+            geocoder.geocode({ location: location }, (results, status) => {
+                if (status === "OK" && results[0]) {
+                    const address = results[0].formatted_address;
+                    // Extract a more readable venue name (remove country and postal code)
+                    let venueName = address;
+                    
+                    // Try to get a shorter, more venue-friendly name
+                    if (results[0].address_components) {
+                        const components = results[0].address_components;
+                        let nameParts = [];
+                        
+                        // Look for establishment, point_of_interest, or locality
+                        for (let component of components) {
+                            if (component.types.includes('establishment') || 
+                                component.types.includes('point_of_interest') ||
+                                component.types.includes('premise')) {
+                                nameParts.push(component.long_name);
+                                break;
+                            }
+                        }
+                        
+                        // If no establishment found, use locality and route
+                        if (nameParts.length === 0) {
+                            for (let component of components) {
+                                if (component.types.includes('locality') || 
+                                    component.types.includes('route') ||
+                                    component.types.includes('sublocality')) {
+                                    nameParts.push(component.long_name);
+                                }
+                            }
+                        }
+                        
+                        if (nameParts.length > 0) {
+                            venueName = nameParts.join(', ');
+                        }
+                    }
+                    
+                    document.getElementById("venueName").value = venueName;
+                } else {
+                    document.getElementById("venueName").value = "";
+                    console.error('Geocoding failed:', status);
+                }
+            });
+        }
+
+        // Open map modal
+        function openMapModal() {
+            console.log('Opening map modal...');
+            
+            // Check if Bootstrap is available
+            if (typeof bootstrap === 'undefined') {
+                alert('Bootstrap is not loaded. Please refresh the page and try again.');
+                return;
+            }
+            
+            const modalElement = document.getElementById('mapModal');
+            if (!modalElement) {
+                alert('Map modal not found. Please refresh the page and try again.');
+                return;
+            }
+            
+            try {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+                console.log('Modal should be showing now');
+            } catch (error) {
+                console.error('Error showing modal:', error);
+                alert('Error opening modal: ' + error.message);
+            }
+            
+            // Reset form
+            document.getElementById("venueName").value = "";
+            selectedLocation = null;
+            if (marker) {
+                marker.setMap(null);
+                marker = null;
+            }
+            
+            // Initialize map if not already done
+            if (!map && typeof google !== 'undefined' && google.maps) {
+                initMap();
+            }
+            
+            // Ensure map is properly initialized when modal is shown
+            setTimeout(() => {
+                if (map) {
+                    google.maps.event.trigger(map, 'resize');
+                } else if (typeof google !== 'undefined' && google.maps) {
+                    initMap();
+                }
+            }, 500);
+        }
+
+        // Select location and close modal
+        function selectLocation() {
+            const venueName = document.getElementById("venueName").value.trim();
+            
+            // Check if venue name is provided
+            if (!venueName) {
+                alert("Please enter a venue name.");
+                document.getElementById("venueName").focus();
+                return;
+            }
+            
+            // Check if location is selected
+            if (!selectedLocation) {
+                alert("Please click on the map to select a location first.");
+                return;
+            }
+            
+            // Set the venue name in the main form
+            const venueInput = document.getElementById("venue");
+            venueInput.value = venueName;
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('mapModal'));
+            modal.hide();
+        }
+
+        // Add event listener for modal shown event
+        document.addEventListener('DOMContentLoaded', function() {
+            const mapModal = document.getElementById('mapModal');
+            if (mapModal) {
+                mapModal.addEventListener('shown.bs.modal', function () {
+                    console.log('Modal shown, initializing map...');
+                    setTimeout(() => {
+                        if (!map && typeof google !== 'undefined' && google.maps) {
+                            initMap();
+                        } else if (map) {
+                            google.maps.event.trigger(map, 'resize');
+                        }
+                    }, 100);
+                });
+            }
+        });
+
         // Ensure Bootstrap JS is available (fallback to CDN if local missing)
         function loadScriptOnce(src, id) {
             return new Promise((resolve, reject) => {
@@ -310,7 +561,7 @@ $selected_planner_id = isset($_GET['planner_id']) ? (int)$_GET['planner_id'] : n
         }
         async function ensureBootstrapJs() {
             if (window.bootstrap && window.bootstrap.Modal) return;
-            try { await loadScriptOnce('https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js', 'bootstrapCdn'); } catch (e) {}
+            try { await loadScriptOnce('https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js', 'bootstrapCdn'); } catch (e) {}
         }
         document.querySelectorAll('input[name="planner_option"]').forEach(radio => {
             radio.addEventListener('change', function() {

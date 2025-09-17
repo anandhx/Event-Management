@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize notification system
     initializeNotifications();
+    
+    // Initialize form submissions
+    initializeFormSubmissions();
 });
 
 // Animation initialization
@@ -422,7 +425,7 @@ function submitFormWithLoading(form, action) {
 }
 
 // Initialize form submissions
-document.addEventListener('DOMContentLoaded', function() {
+function initializeFormSubmissions() {
     const loginForm = document.getElementById('loginForm');
     const clientSignupForm = document.getElementById('clientSignupForm');
     const plannerSignupForm = document.getElementById('plannerSignupForm');
@@ -456,7 +459,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-});
+}
 
 // Parallax effect for hero section
 function initializeParallax() {
@@ -471,7 +474,9 @@ function initializeParallax() {
 }
 
 // Initialize parallax on load
-document.addEventListener('DOMContentLoaded', initializeParallax);
+document.addEventListener('DOMContentLoaded', function() {
+    initializeParallax();
+});
 
 // Counter animation for statistics
 function animateCounters() {
@@ -497,15 +502,20 @@ function animateCounters() {
 }
 
 // Initialize counter animation when elements come into view
-const counterObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            animateCounters();
-            counterObserver.unobserve(entry.target);
-        }
+function initializeCounterAnimation() {
+    const counterObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                animateCounters();
+                counterObserver.unobserve(entry.target);
+            }
+        });
     });
-});
 
-document.querySelectorAll('.stat-card').forEach(card => {
-    counterObserver.observe(card);
-}); 
+    document.querySelectorAll('.stat-card').forEach(card => {
+        counterObserver.observe(card);
+    });
+}
+
+// Initialize counter animation on load
+document.addEventListener('DOMContentLoaded', initializeCounterAnimation); 

@@ -140,6 +140,79 @@ if (session_status() == PHP_SESSION_NONE) {
     transition: filter 0.6s ease;
 }
 
+    /* Glassmorphic Header Styles */
+    .glass-header {
+        position: sticky;
+        top: 0;
+        z-index: 1030;
+        background: rgba(20, 24, 35, 0.35);
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+    .glass-header .navbar { background: transparent; }
+    .brand-text {
+        font-weight: 800;
+        font-size: 1.5rem;
+        letter-spacing: 0.5px;
+        color: #fff;
+    }
+    .brand-text .accent { color: #6dd6ff; }
+    .brand-logo {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, rgba(109,214,255,0.9), rgba(118,75,162,0.9));
+        box-shadow: 0 6px 18px rgba(109,214,255,0.35);
+        display: inline-block;
+    }
+    .glass-link {
+        color: rgba(255,255,255,0.85);
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        transition: color .2s ease, background .2s ease, transform .2s ease;
+    }
+    .glass-link:hover {
+        color: #fff;
+        background: rgba(255,255,255,0.08);
+        transform: translateY(-1px);
+    }
+    .divider-dot {
+        width: 6px; height: 6px; border-radius: 50%; display: inline-block;
+        background: rgba(255,255,255,0.25);
+        margin: 0 8px;
+    }
+    .glass-btn-primary {
+        background: linear-gradient(135deg, rgba(109,214,255,0.9), rgba(118,75,162,0.9));
+        color: #0b1220;
+        border: 0;
+        border-radius: 12px;
+        padding: 8px 16px;
+        box-shadow: 0 8px 24px rgba(109,214,255,0.35);
+    }
+    .glass-btn-primary:hover { filter: brightness(1.05); color: #0b1220; }
+    .glass-btn-outline {
+        background: rgba(255,255,255,0.06);
+        color: #e8f3ff;
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 12px;
+        padding: 8px 16px;
+        backdrop-filter: blur(6px);
+    }
+    .glass-btn-outline:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .navbar-toggler { filter: invert(1) contrast(2) saturate(0.6); }
+    @media (max-width: 991.98px) {
+        .glass-header .navbar-collapse {
+            background: rgba(20, 24, 35, 0.55);
+            border-radius: 12px;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            padding: 12px;
+            margin-top: 10px;
+        }
+    }
+
        
 
 </style>
@@ -201,38 +274,26 @@ if (session_status() == PHP_SESSION_NONE) {
 
 
     <!-- Header Start -->
-    <header class="custom-header">
+    <header class="glass-header fixed-top">
         <div class="container">
             <nav class="navbar navbar-expand-lg py-3">
-                <a href="index.php" class="navbar-brand">
-                    <h1 class="mb-0">Event<span class="text-gradient">Pro</span></h1>
+                <a href="index.php" class="navbar-brand d-flex align-items-center">
+                    <span class="brand-logo me-2"></span>
+                    <span class="brand-text">Event<span class="accent">Pro</span></span>
                 </a>
-                
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+                <button class="navbar-toggler shadow-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                
                 <div class="collapse navbar-collapse" id="navbarCollapse">
-                    <ul class="navbar-nav ms-auto align-items-center">
-                        <li class="nav-item">
-                            <a href="index.php" class="nav-link">Home</a>
-                        </li>
-                
-                        <li class="nav-item ms-3">
-                            <a href="login.php" class="btn-custom btn-primary-custom">
-                                <i class="fas fa-user me-2"></i>Login
-                            </a>
-                        </li>
-                        <li class="nav-item ms-2">
-                            <a href="user/register.php" class="btn-custom btn-outline-secondary">
-                                <i class="fas fa-user-plus me-2"></i>Sign Up
-                            </a>
-                        </li>
-                        <li class="nav-item ms-2">
-                            <a href="user/register_planner.php" class="btn-custom btn-outline-secondary">
-                                <i class="fas fa-calendar-check me-2"></i>Planner Sign Up
-                            </a>
-                        </li>
+                    <ul class="navbar-nav ms-auto align-items-center gap-lg-2">
+                 
+
+                        <li><a href="#home" class="nav-link">Home</a></li>
+                <li><a href="#services" class="nav-link">Services</a></li>
+                <li><a href="#about" class="nav-link">About</a></li> 
+                <li><a href="login.php" class="nav-link">Login</a></li>
+                <li><a href="user/register.php" class="nav-link">Sign Up</a></li>
+                <li><a href="user/register_planner.php" class="nav-link">Planner Sign Up</a></li>
                     </ul>
                 </div>
             </nav>

@@ -114,57 +114,59 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link href="assets/css/style.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root { --bg-1:#6a11cb; --bg-2:#2575fc; --glass-bg:rgba(255,255,255,0.1); --glass-stroke:rgba(255,255,255,0.35); --text-on-dark:#ffffff; --input-border:rgba(255,255,255,0.35); --input-focus:#a2b6ff; }
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            padding: 40px 0;
+            color: var(--text-on-dark);
+            background: linear-gradient(120deg, var(--bg-1), var(--bg-2));
+            background-size: 200% 200%;
+            animation: gradientShift 12s ease infinite;
+            position: relative;
+            overflow-x: hidden;
+            overflow-y: auto;
             display: flex;
             align-items: center;
         }
-        .login-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        .login-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px;
-            text-align: center;
-        }
-        .login-form {
-            padding: 40px;
-        }
-        .form-control {
-            border-radius: 10px;
-            border: 2px solid #e9ecef;
-            padding: 12px 15px;
-            transition: all 0.3s ease;
-        }
-        .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-        .btn-login {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 10px;
-            padding: 12px 30px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-        }
+        @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+        .floating-shapes span{position:absolute;display:block;width:180px;height:180px;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.45),rgba(255,255,255,.1));filter:blur(2px);border-radius:50%;animation:float 18s ease-in-out infinite;mix-blend-mode:screen}
+        .floating-shapes span:nth-child(1){top:-40px;left:-40px;animation-delay:0s}
+        .floating-shapes span:nth-child(2){bottom:-60px;right:-60px;animation-delay:4s;width:240px;height:240px}
+        .floating-shapes span:nth-child(3){top:50%;left:-80px;animation-delay:8s;width:200px;height:200px}
+        @keyframes float{0%,100%{transform:translateY(0) translateX(0) scale(1)}50%{transform:translateY(-25px) translateX(15px) scale(1.05)}}
+        .login-container { backdrop-filter: blur(14px); background: var(--glass-bg); border-radius: 24px; border: 1px solid var(--glass-stroke); box-shadow: 0 20px 60px rgba(0,0,0,0.35); overflow: hidden; }
+        .login-header { position: relative; background: linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.05)); color: var(--text-on-dark); padding: 28px 30px; text-align: center; }
+        .login-header h2{letter-spacing:.5px;margin-bottom:6px}
+        .login-header p{opacity:.85;margin:0}
+        .header-glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(650px 150px at 50% -20%,rgba(255,255,255,.35),transparent 60%)}
+        .login-form { padding: 34px 40px 40px; }
+        .form-label{color:#e9eefb;font-weight:600}
+        .form-control{color:#e8eeff;background:rgba(255,255,255,.06);border-radius:12px;border:1px solid var(--input-border);padding:12px 14px;transition:border-color .25s ease,box-shadow .25s ease,transform .12s ease}
+        .form-control::placeholder{color:rgba(233,238,251,.65)}
+        .form-control:focus{border-color:var(--input-focus);box-shadow:0 0 0 .25rem rgba(162,182,255,.25);transform:translateY(-1px)}
+        .input-group-text{background:rgba(255,255,255,.08); border:1px solid var(--input-border); color:#e8eeff; border-right:0; border-radius:12px 0 0 12px}
+        .input-group .form-control{border-left:0;border-radius:0 12px 12px 0}
+        .btn-login{background:linear-gradient(135deg,#a78bfa,#60a5fa);border:none;border-radius:12px;padding:12px 28px;font-weight:700;letter-spacing:.2px;transition:transform .15s ease,box-shadow .25s ease,filter .25s ease;box-shadow:0 12px 30px rgba(96,165,250,.35)}
+        .btn-login:hover{transform:translateY(-2px);filter:brightness(1.04)}
+        .btn-login:active{transform:translateY(0)}
+        /* Prevent white background on focus/autofill */
+        .form-control,.form-control:focus,.form-control:active{background:rgba(255,255,255,.06)!important;color:#e8eeff!important;caret-color:#e8eeff}
+        input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus,textarea:-webkit-autofill,select:-webkit-autofill{-webkit-text-fill-color:#e8eeff!important;-webkit-box-shadow:0 0 0px 1000px rgba(255,255,255,.06) inset!important;box-shadow:0 0 0px 1000px rgba(255,255,255,.06) inset!important;transition:background-color 9999s ease-in-out 0s}
+        input:-moz-autofill{background-color:rgba(255,255,255,.06)!important;color:#e8eeff!important}
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container position-relative" style="z-index:2;">
+        <div class="floating-shapes" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
         <div class="row justify-content-center">
             <div class="col-md-6 col-lg-5">
                 <div class="login-container">
                     <div class="login-header">
+                        <div class="header-glow"></div>
                         <h2><i class="fas fa-calendar-check me-2"></i>EMS Login</h2>
                         <p class="mb-0">Event Management System</p>
                     </div>
